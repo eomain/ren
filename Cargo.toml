@@ -1,0 +1,15 @@
+[package]
+name = "ren"
+version = "0.1.0"
+authors = ["eomain"]
+
+[dependencies]
+xcb = "0.8"
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 3
+debug = false
