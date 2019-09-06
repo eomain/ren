@@ -11,10 +11,70 @@ pub enum Object<'a> {
 
 pub trait Drawable: Clone {
 
-    fn draw(&self);
+    fn draw(&self)
+    {
+
+    }
 
     fn object(&self) -> Object;
 
+}
+
+pub trait Transformation {
+
+    fn point(&self) -> &Point;
+
+    fn points(&self) -> Option<&[Point]>
+    {
+        None
+    }
+
+    fn point_mut(&mut self) -> &mut Point;
+
+    fn points_mut(&mut self) -> Option<&mut [Point]>
+    {
+        None
+    }
+
+    fn for_each<F>(&mut self, pos: (i32, i32), mut func: F)
+        where F: FnMut(&mut Point, (i32, i32))
+    {
+        if match self.points_mut() {
+            None => true,
+            Some(points) => {
+                points.iter_mut().for_each(|p| func(p, pos));
+                false
+            }
+        } {
+            func(self.point_mut(), pos);
+        }
+    }
+
+    fn position(&mut self, pos: (i32, i32))
+    {
+        self.for_each(pos, |point, pos| {
+            point.x = pos.0;
+            point.y = pos.1;
+        });
+    }
+
+    fn translate(&mut self, pos: (i32, i32))
+    {
+        self.for_each(pos, |point, pos| {
+            point.x += pos.0;
+            point.y += pos.1;
+        });
+    }
+
+}
+
+#[test]
+fn translation()
+{
+    let mut point: Point = (3, 4).into();
+    point.translate((3, 3));
+    let pos: (_, _) = point.into();
+    assert_eq!(pos, (6, 7));
 }
 
 pub struct Surface<'a> {
@@ -69,6 +129,17 @@ impl<'a> Surface<'a> {
 
 }
 
+impl<'a, T> From<&'a [T]> for Surface<'a>
+    where T: Drawable
+{
+    fn from(objects: &'a [T]) -> Self
+    {
+        Self {
+            objects: objects.iter().map(|o| o.object()).collect()
+        }
+    }
+}
+
 #[derive(Clone)]
 pub enum Color {
     RGB(u16, u16, u16)
@@ -101,24 +172,23 @@ impl<'a> Font<'a> {
     {
         &self.text
     }
+}
 
-    pub fn get_point(&self) -> &Point
+impl<'a> Transformation for Font<'a> {
+
+    fn point(&self) -> &Point
     {
         &self.point
     }
 
-    pub fn set_position(&mut self, pos: (i32, i32))
+    fn point_mut(&mut self) -> &mut Point
     {
-        self.point.set(pos);
+        &mut self.point
     }
+
 }
 
 impl<'a> Drawable for Font<'a> {
-
-    fn draw(&self)
-    {
-
-    }
 
     fn object(&self) -> Object
     {
@@ -133,7 +203,7 @@ pub struct Image {
     height: u32
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Point {
     x: i32,
     y: i32
@@ -187,6 +257,14 @@ impl From<(i32, i32)> for Point {
 
 }
 
+impl From<Point> for (i32, i32) {
+
+    fn from(point: Point) -> Self
+    {
+        (point.x, point.y)
+    }
+}
+
 impl From<&Point> for (i32, i32) {
 
     fn from(point: &Point) -> Self
@@ -195,12 +273,21 @@ impl From<&Point> for (i32, i32) {
     }
 }
 
-impl Drawable for Point {
+impl Transformation for Point {
 
-    fn draw(&self)
+    fn point(&self) -> &Point
     {
-
+        self
     }
+
+    fn point_mut(&mut self) -> &mut Point
+    {
+        self
+    }
+
+}
+
+impl Drawable for Point {
 
     fn object(&self) -> Object
     {
@@ -216,7 +303,14 @@ pub struct Line {
 
 impl Line {
 
-    pub fn new(points: &[Point]) -> Self
+    pub fn new() -> Self
+    {
+        Self {
+            points: Vec::new()
+        }
+    }
+
+    pub fn from(points: &[Point]) -> Self
     {
         Self {
             points: points.to_vec()
@@ -225,6 +319,16 @@ impl Line {
 }
 
 impl Line {
+
+    pub fn append(&mut self, point: Point)
+    {
+        self.points.push(point);
+    }
+
+    pub fn count(&self) -> usize
+    {
+        self.points.len()
+    }
 
     pub fn points(&self) -> &[Point]
     {
@@ -238,12 +342,32 @@ impl Line {
     }
 }
 
-impl Drawable for Line {
+impl From<&[Point]> for Line {
 
-    fn draw(&self)
+    fn from(points: &[Point]) -> Self
     {
-
+        Self {
+            points: points.to_vec()
+        }
     }
+
+}
+
+impl Transformation for Line {
+
+    fn point(&self) -> &Point
+    {
+        &self.points[0]
+    }
+
+    fn point_mut(&mut self) -> &mut Point
+    {
+        &mut self.points[0]
+    }
+
+}
+
+impl Drawable for Line {
 
     fn object(&self) -> Object
     {
@@ -261,7 +385,12 @@ pub struct Rectangle {
 
 impl Rectangle {
 
-    pub fn new(x: i32, y: i32, width: u32, height: u32) -> Self
+    pub fn new() -> Self
+    {
+        Self::from(0, 0, 0, 0)
+    }
+
+    pub fn from(x: i32, y: i32, width: u32, height: u32) -> Self
     {
         Self {
             point: Point::new(x, y),
@@ -273,7 +402,7 @@ impl Rectangle {
     pub fn from_point(point: &Point, width: u32, height: u32) -> Self
     {
         let (x, y) = point.into();
-        Self::new(x, y, width, height)
+        Self::from(x, y, width, height)
     }
 }
 
@@ -311,17 +440,6 @@ impl Rectangle {
         self.height = dimension.1;
     }
 
-    pub fn translate(&mut self, location: (i32, i32))
-    {
-        if location.0 != 0 {
-            self.point.translate_x(location.0);
-        }
-
-        if location.1 != 0 {
-            self.point.translate_y(location.1);
-        }
-    }
-
     pub fn scale(&mut self, factor: f64)
     {
         let w = (self.get_width() as f64 * factor);
@@ -339,12 +457,21 @@ impl<'a> From<&'a Rectangle> for (&'a Point, u32, u32)
     }
 }
 
-impl Drawable for Rectangle {
+impl Transformation for Rectangle {
 
-    fn draw(&self)
+    fn point(&self) -> &Point
     {
-
+        &self.point
     }
+
+    fn point_mut(&mut self) -> &mut Point
+    {
+        &mut self.point
+    }
+
+}
+
+impl Drawable for Rectangle {
 
     fn object(&self) -> Object
     {

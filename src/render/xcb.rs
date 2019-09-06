@@ -1,6 +1,8 @@
 extern crate xcb;
 
 use render;
+use render::Drawable;
+use render::Transformation;
 
 pub fn point(point: &render::Point) -> xcb::Point
 {
@@ -28,6 +30,6 @@ pub fn rectangle(rect: &render::Rectangle) -> xcb::Rectangle
 
 pub fn font<'a>(font: &'a render::Font) -> (i16, i16, &'a str)
 {
-    let (x, y) = font.get_point().into();
+    let (x, y) = font.point().into();
     (x as i16, y as i16, font.get_text())
 }
