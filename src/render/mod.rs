@@ -408,11 +408,6 @@ impl Rectangle {
 
 impl Rectangle {
 
-    pub fn get_point(&self) -> &Point
-    {
-        &self.point
-    }
-
     pub fn get_width(&self) -> u32
     {
         self.width
