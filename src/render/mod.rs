@@ -3,13 +3,13 @@ pub(crate) mod xcb;
 
 #[derive(Clone)]
 pub enum Object<'a> {
-    Font(&'a Font<'a>),
-    Point(&'a Point),
-    Line(&'a Line<'a>),
-    Rect(&'a Rectangle)
+    Font(Font<'a>),
+    Point(Point),
+    Line(Line),
+    Rect(Rectangle)
 }
 
-pub trait Drawable {
+pub trait Drawable: Clone {
 
     fn draw(&self);
 
@@ -33,16 +33,16 @@ impl<'a> Surface<'a> {
     pub fn from<T>(objects: &'a [T]) -> Self
         where T: Drawable
     {
-        let mut surface = Self::new();
-        surface.add(objects);
-        surface
+        Self {
+            objects: objects.iter().map(|o| o.object()).collect()
+        }
     }
 
     pub fn from_object(objects: &[Object<'a>]) -> Self
     {
-        let mut surface = Self::new();
-        surface.add_object(objects);
-        surface
+        Self {
+            objects: objects.to_vec()
+        }
     }
 }
 
@@ -51,41 +51,33 @@ impl<'a> Surface<'a> {
     pub fn add<T>(&mut self, objects: &'a [T])
         where T: Drawable
     {
-        let iter = objects.iter();
-        self.objects.reserve(iter.len());
-
-        for o in iter {
-            self.objects.push(o.object());
-        }
+        let mut v = objects.iter().map(|o| o.object()).collect();
+        self.objects.append(&mut v);
     }
 
     pub fn add_object(&mut self, objects: &[Object<'a>])
     {
-        let iter = objects.iter();
-        self.objects.reserve(iter.len());
-
-        for o in iter {
-            self.objects.push(o.clone());
-        }
+        let mut v = objects.to_vec();
+        self.objects.append(&mut v);
     }
 
     pub fn for_each<F>(&self, func: F)
         where F: Fn(&Object)
     {
-        for obj in &self.objects {
-            func(obj);
-        }
+        self.objects.iter().for_each(func);
     }
 
 }
 
+#[derive(Clone)]
 pub enum Color {
     RGB(u16, u16, u16)
 }
 
+#[derive(Clone)]
 pub struct Font<'a> {
     text: &'a str,
-    font: String,
+    font: Option<&'a str>,
     color: Color,
     point: Point
 }
@@ -96,7 +88,7 @@ impl<'a> Font<'a> {
     {
         Self {
             text,
-            font: String::new(),
+            font: None,
             color: Color::RGB(0, 0, 0),
             point: Point::new(0, 0)
         }
@@ -130,7 +122,7 @@ impl<'a> Drawable for Font<'a> {
 
     fn object(&self) -> Object
     {
-        Object::Font(self)
+        Object::Font(self.clone())
     }
 }
 
@@ -141,6 +133,7 @@ pub struct Image {
     height: u32
 }
 
+#[derive(Clone)]
 pub struct Point {
     x: i32,
     y: i32
@@ -157,21 +150,6 @@ impl Point {
 }
 
 impl Point {
-
-    pub fn get(&self) -> (i32, i32)
-    {
-        (self.x, self.y)
-    }
-
-    pub fn get_x(&self) -> i32
-    {
-        self.x
-    }
-
-    pub fn get_y(&self) -> i32
-    {
-        self.y
-    }
 
     pub fn set(&mut self, point: (i32, i32))
     {
@@ -200,6 +178,23 @@ impl Point {
     }
 }
 
+impl From<(i32, i32)> for Point {
+
+    fn from(point: (i32, i32)) -> Self
+    {
+        Self::new(point.0, point.1)
+    }
+
+}
+
+impl From<&Point> for (i32, i32) {
+
+    fn from(point: &Point) -> Self
+    {
+        (point.x, point.y)
+    }
+}
+
 impl Drawable for Point {
 
     fn draw(&self)
@@ -209,28 +204,29 @@ impl Drawable for Point {
 
     fn object(&self) -> Object
     {
-        Object::Point(self)
+        Object::Point(self.clone())
     }
 
 }
 
-pub struct Line<'a> {
-    points: &'a [Point]
+#[derive(Clone)]
+pub struct Line {
+    points: Vec<Point>
 }
 
-impl<'a> Line<'a> {
+impl Line {
 
-    pub fn new(points: &'a [Point]) -> Self
+    pub fn new(points: &[Point]) -> Self
     {
         Self {
-            points
+            points: points.to_vec()
         }
     }
 }
 
-impl<'a> Line<'a> {
+impl Line {
 
-    pub fn get(&self) -> &'a [Point]
+    pub fn points(&self) -> &[Point]
     {
         &self.points
     }
@@ -238,13 +234,11 @@ impl<'a> Line<'a> {
     pub fn for_each<F>(&self, mut func: F)
         where F: Fn(&Point)
     {
-        for point in self.points {
-            func(point);
-        }
+        self.points.iter().for_each(func);
     }
 }
 
-impl<'a> Drawable for Line<'a> {
+impl Drawable for Line {
 
     fn draw(&self)
     {
@@ -253,11 +247,12 @@ impl<'a> Drawable for Line<'a> {
 
     fn object(&self) -> Object
     {
-        Object::Line(self)
+        Object::Line(self.clone())
     }
 
 }
 
+#[derive(Clone)]
 pub struct Rectangle {
     point: Point,
     width: u32,
@@ -277,7 +272,8 @@ impl Rectangle {
 
     pub fn from_point(point: &Point, width: u32, height: u32) -> Self
     {
-        Self::new(point.get_x(), point.get_y(), width, height)
+        let (x, y) = point.into();
+        Self::new(x, y, width, height)
     }
 }
 
@@ -328,13 +324,19 @@ impl Rectangle {
 
     pub fn scale(&mut self, factor: f64)
     {
-        let (w, h) = {
-            ((self.get_width() as f64 * factor) as u32,
-             (self.get_height() as f64 * factor) as u32)
-        };
-        self.set_dimension((w, h));
+        let w = (self.get_width() as f64 * factor);
+        let h = (self.get_height() as f64 * factor);
+        self.set_dimension((w as u32, h as u32));
     }
 
+}
+
+impl<'a> From<&'a Rectangle> for (&'a Point, u32, u32)
+{
+    fn from(rect: &'a Rectangle) -> Self
+    {
+        (&rect.point, rect.width, rect.height)
+    }
 }
 
 impl Drawable for Rectangle {
@@ -346,7 +348,7 @@ impl Drawable for Rectangle {
 
     fn object(&self) -> Object
     {
-        Object::Rect(self)
+        Object::Rect(self.clone())
     }
 
 }

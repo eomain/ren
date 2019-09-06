@@ -64,68 +64,64 @@ pub struct Context
     /*root: xcb::Drawable*/
 }
 
-impl Context {
+fn font(context: &Context, font: &Font)
+{
+    let fid = context.connection.generate_id();
+    xcb::open_font(&context.connection, fid, "fixed");
 
-    fn font(&self, font: &Font)
-    {
-        let fid = self.connection.generate_id();
-        xcb::open_font(&self.connection, fid, "fixed");
+    let (x, y, text) = render::xcb::font(font);
+    xcb::image_text_8(
+        &context.connection,
+        context.window,
+        context.foreground,
+        x,
+        y,
+        text
+    );
 
-        let (x, y, text) = render::xcb::font(font);
-        xcb::image_text_8(
-            &self.connection,
-            self.window,
-            self.foreground,
-            x,
-            y,
-            text
-        );
+    xcb::close_font(&context.connection, fid);
+}
 
-        xcb::close_font(&self.connection, fid);
-    }
+fn point(context: &Context, point: &Point)
+{
+    let point = &[
+        render::xcb::point(point)
+    ];
 
-    fn point(&self, point: &Point)
-    {
-        let point = &[
-            render::xcb::point(point)
-        ];
+    xcb::poly_point(
+        &context.connection,
+        xcb::COORD_MODE_ORIGIN as u8,
+        context.window,
+        context.foreground,
+        point
+    );
+}
 
-        xcb::poly_point(
-            &self.connection,
-            xcb::COORD_MODE_ORIGIN as u8,
-            self.window,
-            self.foreground,
-            point
-        );
-    }
+fn line(context: &Context, line: &Line)
+{
+    let line = render::xcb::line(line);
 
-    fn line(&self, line: &Line)
-    {
-        let line = render::xcb::line(line);
+    xcb::poly_line(
+        &context.connection,
+        xcb::COORD_MODE_ORIGIN as u8,
+        context.window,
+        context.foreground,
+        &line
+    );
+}
 
-        xcb::poly_line(
-            &self.connection,
-            xcb::COORD_MODE_ORIGIN as u8,
-            self.window,
-            self.foreground,
-            &line
-        );
-    }
+fn rect(context: &Context, rect: &Rect)
+{
+    let rect = &[
+        render::xcb::rectangle(rect)
+    ];
 
-    fn rect(&self, rect: &Rect)
-    {
-        let rect = &[
-            render::xcb::rectangle(rect)
-        ];
-
-        xcb::poly_rectangle(
-            &self.connection,
-            self.window,
-            self.foreground,
-            rect
-        );
-    }
-
+    xcb::poly_rectangle(
+        &context.connection,
+        context.window,
+        context.foreground,
+        rect
+    );
 }
 
 impl DisplayContext for Context {
@@ -264,20 +260,20 @@ impl DisplayContext for Context {
     {
         surface.for_each(|object| {
             match *object {
-                render::Object::Font(font) => {
-                    self.font(font);
+                render::Object::Font(ref f) => {
+                    font(self, f);
                 },
 
-                render::Object::Point(point) => {
-                    self.point(point);
+                render::Object::Point(ref p) => {
+                    point(self, p);
                 },
 
-                render::Object::Line(line) => {
-                    self.line(line);
+                render::Object::Line(ref l) => {
+                    line(self, l);
                 },
 
-                render::Object::Rect(rect) => {
-                    self.rect(rect);
+                render::Object::Rect(ref r) => {
+                    rect(self, r);
                 }
             }
         });
