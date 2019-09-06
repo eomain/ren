@@ -4,6 +4,7 @@ use ren::render::Surface;
 use ren::render::Font;
 use ren::render::Point;
 use ren::render::Rectangle;
+use ren::render::Transformation;
 
 
 fn main()
@@ -27,9 +28,9 @@ fn main()
 
     let rects = [
         rect,
-        Rectangle::new(200, 200, 160, 160),
-        Rectangle::new(400, 100, 30, 30),
-        Rectangle::new(400, 250, 80, 80)
+        Rectangle::from(200, 200, 160, 160),
+        Rectangle::from(400, 100, 30, 30),
+        Rectangle::from(400, 250, 80, 80)
     ];
 
     let surface = Surface::from(&rects);

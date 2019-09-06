@@ -1,6 +1,7 @@
 extern crate ren;
 
 use ren::render::Surface;
+use ren::render::Transformation;
 use ren::render::Font;
 
 fn main()
@@ -18,7 +19,7 @@ fn main()
     win.set_origin((0, 0));
 
     let mut f = Font::new("hello world");
-    f.set_position((280, 150));
+    f.position((280, 150));
     let font = &[ f ];
 
     let surface = Surface::from(font);

@@ -27,9 +27,9 @@ fn main() {
         Point::new(40, 10)
     ];
 
-    let line = Line::new(points);
+    let line = Line::from(points);
 
-    let lines : &[Line] = &[
+    let lines: &[Line] = &[
         line
     ];
 
