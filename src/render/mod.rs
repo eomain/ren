@@ -36,23 +36,23 @@ pub trait Transformation {
         None
     }
 
-    fn for_each<F>(&mut self, pos: (i32, i32), mut func: F)
-        where F: FnMut(&mut Point, (i32, i32))
+    fn for_each<F>(&mut self, mut func: F)
+        where F: FnMut(&mut Point)
     {
         if match self.points_mut() {
             None => true,
             Some(points) => {
-                points.iter_mut().for_each(|p| func(p, pos));
+                points.iter_mut().for_each(|p| func(p));
                 false
             }
         } {
-            func(self.point_mut(), pos);
+            func(self.point_mut());
         }
     }
 
     fn position(&mut self, pos: (i32, i32))
     {
-        self.for_each(pos, |point, pos| {
+        self.for_each(|point| {
             point.x = pos.0;
             point.y = pos.1;
         });
@@ -60,7 +60,7 @@ pub trait Transformation {
 
     fn translate(&mut self, pos: (i32, i32))
     {
-        self.for_each(pos, |point, pos| {
+        self.for_each(|point| {
             point.x += pos.0;
             point.y += pos.1;
         });
