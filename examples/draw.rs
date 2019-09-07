@@ -43,8 +43,14 @@ fn main()
 
             },
 
-            ren::Event::Expose(map) => {
-                ren::draw(&win, &surface);
+            ren::Event::Display(event) => {
+                match event {
+                    ren::DisplayEvent::Expose(map) => {
+                        ren::draw(&win, &surface);
+                    },
+
+                    _ => ()
+                }
             },
 
             _ => ()

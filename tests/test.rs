@@ -43,45 +43,53 @@ fn main() {
 
             },
 
-            ren::Event::Expose(map) => {
-                let (x, y) = map.get_position();
-                let (width, height) = map.get_dimension();
-                println!("pos: ({}, {}), dim: ({}, {})", x, y, width, height);
+            ren::Event::Display(event) => {
+                if let ren::DisplayEvent::Expose(map) = event {
+                    let (x, y) = map.position();
+                    let (w, h) = map.dimension();
+                    println!("pos: ({}, {}), dim: ({}, {})", x, y, w, h);
 
-                ren::draw(&win, &surface);
+                    ren::draw(&win, &surface);
+                }
             },
 
-            ren::Event::Key(event) => {
+            ren::Event::Input(event) => {
                 match event {
-                    ren::KeyEvent::Press(_) => {
-                        println!("keypress");
+                    ren::InputEvent::Key(event) => {
+                        match event {
+                            ren::KeyEvent::Press(_) => {
+                                println!("key-press");
+                            },
+
+                            ren::KeyEvent::Release(_) => {
+                                println!("key-release");
+                            }
+
+                            _ => ()
+                        }
                     },
 
-                    ren::KeyEvent::Release(_) => {
-                        println!("keyrelease");
-                    }
+                    ren::InputEvent::Mouse(event) => {
+                        match event {
+                            ren::MouseEvent::Press(pos) => {
+                                println!("button-press: x: {}, y: {}", pos.0, pos.1)
+                            },
+
+                            ren::MouseEvent::Release(pos) => {
+                                println!("button-release: x: {}, y: {}", pos.0, pos.1)
+                            },
+
+                            ren::MouseEvent::Hover(pos) => {
+                                println!("hover: x: {}, y: {}", pos.0, pos.1)
+                            }
+
+                            _ => ()
+                        }
+                    },
 
                     _ => ()
                 }
             },
-
-            ren::Event::Mouse(event) => {
-                match event {
-                    ren::MouseEvent::Press(pos) => {
-                        println!("button press: x: {}, y: {}", pos.0, pos.1)
-                    },
-
-                    ren::MouseEvent::Release(pos) => {
-                        println!("button release: x: {}, y: {}", pos.0, pos.1)
-                    },
-
-                    ren::MouseEvent::Hover(pos) => {
-                        println!("hover: x: {}, y: {}", pos.0, pos.1)
-                    }
-
-                    _ => ()
-                }
-            }
 
             _ => ()
         }

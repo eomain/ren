@@ -32,8 +32,10 @@ fn main()
 
             },
 
-            ren::Event::Expose(map) => {
-                ren::draw(&win, &surface);
+            ren::Event::Display(event) => {
+                if let ren::DisplayEvent::Expose(map) = event {
+                    ren::draw(&win, &surface);
+                }
             },
 
             _ => ()

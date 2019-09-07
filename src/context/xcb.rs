@@ -10,8 +10,10 @@ use render::Line;
 use render::Rectangle as Rect;
 use event;
 use event::Event;
-use event::KeyEvent;
-use event::MouseEvent;
+use event::InputEvent;
+use event::DisplayEvent;
+use event::input::KeyEvent;
+use event::input::MouseEvent;
 
 pub fn init(context: &mut crate::Context)
 {
@@ -217,37 +219,61 @@ impl DisplayContext for Context {
 
                 match resp {
                     xcb::EXPOSE => {
-                        Event::Expose(event::xcb::expose(&e))
+                        Event::Display(
+                            DisplayEvent::Expose(
+                                event::xcb::expose(&e)
+                            )
+                        )
                     },
 
                     xcb::KEY_PRESS => {
-                        Event::Key(KeyEvent::Press(
-                            event::xcb::key_press(&e)
-                        ))
+                        Event::Input(
+                            InputEvent::Key(
+                                KeyEvent::Press(
+                                    event::xcb::key_press(&e)
+                                )
+                            )
+                        )
                     },
 
                     xcb::KEY_RELEASE => {
-                        Event::Key(KeyEvent::Release(
-                            event::xcb::key_release(&e)
-                        ))
+                        Event::Input(
+                            InputEvent::Key(
+                                KeyEvent::Release(
+                                    event::xcb::key_release(&e)
+                                )
+                            )
+                        )
                     },
 
                     xcb::BUTTON_PRESS => {
-                        Event::Mouse(MouseEvent::Press(
-                            event::xcb::button_press(&e)
-                        ))
+                        Event::Input(
+                            InputEvent::Mouse(
+                                MouseEvent::Press(
+                                event::xcb::button_press(&e)
+                                )
+                            )
+                        )
                     },
 
                     xcb::BUTTON_RELEASE => {
-                        Event::Mouse(MouseEvent::Release(
-                            event::xcb::button_release(&e)
-                        ))
+                        Event::Input(
+                            InputEvent::Mouse(
+                                MouseEvent::Release(
+                                    event::xcb::button_release(&e)
+                                )
+                            )
+                        )
                     },
 
                     xcb::MOTION_NOTIFY => {
-                        Event::Mouse(MouseEvent::Hover(
-                            event::xcb::mouse_hover(&e)
-                        ))
+                        Event::Input(
+                            InputEvent::Mouse(
+                                MouseEvent::Hover(
+                                    event::xcb::mouse_hover(&e)
+                                )
+                            )
+                        )
                     },
 
                     _ => Event::None
