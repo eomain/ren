@@ -23,39 +23,29 @@ pub fn init(context: &mut crate::Context)
     context.set_event(event);
 }
 
-pub(crate) fn map(manager: &Manager)
+fn map(manager: &Manager)
 {
-    if let &Manager::XCB(ref display) =
-        manager {
-        display.map();
-    }
+    let display = manager.xcb();
+    display.map();
 }
 
-pub(crate) fn unmap(manager: &Manager)
+fn unmap(manager: &Manager)
 {
-    if let &Manager::XCB(ref display) =
-        manager {
-        display.unmap();
-    }
+    let display = manager.xcb();
+    display.unmap();
 }
 
-pub(crate) fn draw(manager: &Manager, surface: &render::Surface)
+fn draw(manager: &Manager, surface: &render::Surface)
 {
-    if let &Manager::XCB(ref display) =
-        manager {
-        display.draw(surface);
-        display.refresh();
-    }
+    let display = manager.xcb();
+    display.draw(surface);
+    display.refresh();
 }
 
-pub(crate) fn event(manager: &Manager) -> Event
+fn event(manager: &Manager) -> Event
 {
-    if let &Manager::XCB(ref display) =
-        manager {
-        display.event()
-    } else {
-        Event::None
-    }
+    let display = manager.xcb();
+    display.event()
 }
 
 pub struct Context

@@ -53,3 +53,15 @@ impl Manager {
         }
     }
 }
+
+impl Manager {
+
+    pub fn xcb(&self) -> &xcb::Context
+    {
+        match self {
+            Manager::XCB(context) => context,
+            _ => panic!()
+        }
+    }
+
+}
