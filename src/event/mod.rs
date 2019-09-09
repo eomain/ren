@@ -95,6 +95,11 @@ pub mod input {
         SHIFT,
         CAPS,
 
+        UP,
+        DOWN,
+        LEFT,
+        RIGHT,
+
         A,
         B,
         C,
@@ -122,10 +127,11 @@ pub mod input {
         Y,
         Z,
 
+        /// An unknown key
         UNKNOWN
     }
 
-    /// The type of key event.
+    /// The type of Key event.
     pub enum KeyEvent {
         /// A Key press has occured.
         Press(KeyMap),
@@ -185,6 +191,7 @@ pub enum Event {
 
 impl Event {
 
+    /// if the event is a DisplayEvent
     pub fn is_display(&self) -> bool
     {
         if let Event::Display(_) = self {
@@ -194,6 +201,7 @@ impl Event {
         }
     }
 
+    /// if the event is an InputEvent
     pub fn is_input(&self) -> bool
     {
         if let Event::Input(_) = self {
@@ -203,6 +211,7 @@ impl Event {
         }
     }
 
+    /// returns Some, if a KeyEvent otherwise None
     pub fn key_event(&self) -> Option<&input::KeyEvent>
     {
         if let Event::Input(event) = self {
