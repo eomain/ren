@@ -120,7 +120,9 @@ pub mod input {
         W,
         X,
         Y,
-        Z
+        Z,
+
+        UNKNOWN
     }
 
     /// The type of key event.
@@ -199,6 +201,17 @@ impl Event {
         } else {
             false
         }
+    }
+
+    pub fn key_event(&self) -> Option<&input::KeyEvent>
+    {
+        if let Event::Input(event) = self {
+            if let InputEvent::Key(event) = event {
+                return Some(event)
+            }
+        }
+
+        None
     }
 
 }

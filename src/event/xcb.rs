@@ -16,10 +16,13 @@ pub fn expose(event: &xcb::GenericEvent) -> ExposeMap
     )
 }
 
+#[inline]
 fn keymap(code: xcb::ffi::xcb_keycode_t) -> KeyMap
 {
     /* TODO */
-    KeyMap::SHIFT
+    match code {
+        _ => KeyMap::UNKNOWN
+    }
 }
 
  pub fn key_press(event: &xcb::GenericEvent) -> KeyMap
