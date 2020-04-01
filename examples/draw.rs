@@ -7,7 +7,6 @@ use ren::render::Surface;
 use ren::render::Font;
 use ren::render::Point;
 use ren::render::Rect;
-//use ren::render::Transformation;
 
 fn surface() -> Surface
 {
