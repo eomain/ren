@@ -1,8 +1,20 @@
 extern crate ren;
+extern crate mirage;
 
+use mirage::convert::svg;
+use ren::render::Object;
 use ren::render::Surface;
-use ren::render::Transformation;
+use ren::render::Translate;
 use ren::render::Font;
+
+fn surface() -> Surface
+{
+    svg::into::string(r#"
+        <svg>
+            <text>hello world</text>
+        </svg>
+    "#).unwrap()
+}
 
 fn main()
 {
@@ -18,11 +30,11 @@ fn main()
     win.set_dimension((640, 480));
     win.set_origin((0, 0));
 
-    let mut f = Font::new("hello world");
+    let mut f = Font::new((0, 0), "hello world");
     f.position((280, 150));
-    let font = &[ f ];
+    let font = vec![ Object::Text(f) ];
 
-    let surface = Surface::from(font);
+    let surface = Surface::new(font);
 
     ren::map(&mut win);
 

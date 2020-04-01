@@ -7,7 +7,7 @@ use render::Surface;
 use render::Font;
 use render::Point;
 use render::Line;
-use render::Rectangle as Rect;
+use render::Rect;
 use event;
 use event::Event;
 use event::InputEvent;
@@ -286,7 +286,7 @@ impl DisplayContext for Context {
     {
         surface.for_each(|object| {
             match *object {
-                render::Object::Font(ref f) => {
+                render::Object::Text(ref f) => {
                     font(self, f);
                 },
 

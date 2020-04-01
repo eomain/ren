@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["eomain"]
 
 [dependencies]
+mirage = { git = "https://github.com/eomain/mirage" }
 xcb = "0.8"
 
 [profile.dev]

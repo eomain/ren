@@ -1,21 +1,19 @@
 extern crate xcb;
 
-use render;
-use render::Drawable;
-use render::Transformation;
+use super::*;
 
-pub fn point(point: &render::Point) -> xcb::Point
+pub fn point(point: &Point) -> xcb::Point
 {
     let (x, y) = point.into();
     xcb::Point::new(x as i16, y as i16)
 }
 
-pub fn line(line: &render::Line) -> Vec<xcb::Point>
+pub fn line(line: &Line) -> Vec<xcb::Point>
 {
-    line.points().iter().map(|p| point(p)).collect()
+    line.points.iter().map(|p| point(p)).collect()
 }
 
-pub fn rectangle(rect: &render::Rectangle) -> xcb::Rectangle
+pub fn rectangle(rect: &Rect) -> xcb::Rectangle
 {
     let (point, w, h) = rect.into();
     let (x, y) = point.into();
@@ -28,8 +26,9 @@ pub fn rectangle(rect: &render::Rectangle) -> xcb::Rectangle
     )
 }
 
-pub fn font<'a>(font: &'a render::Font) -> (i16, i16, &'a str)
+pub fn font<'a>(font: &'a Font) -> (i16, i16, &'a str)
 {
-    let (x, y) = font.point().into();
-    (x as i16, y as i16, font.get_text())
+    let p = &font.point;
+    let (x, y) = p.into();
+    (x as i16, y as i16, &font.text)
 }
