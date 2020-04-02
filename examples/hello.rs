@@ -12,7 +12,7 @@ fn surface() -> Surface
 {
     svg::into::string(r#"
         <svg>
-            <text>hello world</text>
+            <text x="280" y="150">hello world</text>
         </svg>
     "#).unwrap()
 }
@@ -31,11 +31,7 @@ fn main()
     win.set_dimension((640, 480));
     win.set_origin((0, 0));
 
-    let mut f = Font::new((0, 0), "hello world");
-    f.position((280, 150));
-    let font = vec![ Primitive(Text(f)) ];
-
-    let surface = Surface::new(font);
+    let surface = surface();
 
     ren::map(&mut win);
 
