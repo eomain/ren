@@ -285,22 +285,28 @@ impl DisplayContext for Context {
     fn draw(&self, surface: &Surface)
     {
         surface.for_each(|object| {
-            match *object {
-                render::Object::Text(ref f) => {
-                    font(self, f);
-                },
+            use render::Object;
+            use render::Primitive;
 
-                render::Object::Point(ref p) => {
-                    point(self, p);
-                },
+            match &*object {
+                Object::Primitive(p) => match p {
+                    Primitive::Text(ref f) => {
+                        font(self, f);
+                    },
 
-                render::Object::Line(ref l) => {
-                    line(self, l);
-                },
+                    Primitive::Point(ref p) => {
+                        point(self, p);
+                    },
 
-                render::Object::Rect(ref r) => {
-                    rect(self, r);
-                }
+                    Primitive::Line(ref l) => {
+                        line(self, l);
+                    },
+
+                    Primitive::Rect(ref r) => {
+                        rect(self, r);
+                    }
+                },
+                _ => ()
             }
         });
     }

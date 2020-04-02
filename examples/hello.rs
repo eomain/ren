@@ -2,7 +2,8 @@ extern crate ren;
 extern crate mirage;
 
 use mirage::convert::svg;
-use ren::render::Object;
+use ren::render::Object::Primitive;
+use ren::render::Primitive::Text;
 use ren::render::Surface;
 use ren::render::Translate;
 use ren::render::Font;
@@ -32,7 +33,7 @@ fn main()
 
     let mut f = Font::new((0, 0), "hello world");
     f.position((280, 150));
-    let font = vec![ Object::Text(f) ];
+    let font = vec![ Primitive(Text(f)) ];
 
     let surface = Surface::new(font);
 

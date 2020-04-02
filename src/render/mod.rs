@@ -10,6 +10,7 @@ pub use mirage::object::{
 pub use mirage::object::text::Text as Font;
 
 pub use mirage::surface::{
+    Primitive,
     Object,
     Surface
 };
