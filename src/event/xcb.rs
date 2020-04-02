@@ -1,8 +1,8 @@
 extern crate xcb;
 
-use event::display::ExposeMap;
-use event::input::KeyMap;
-use display::window::Position;
+use crate::event::display::ExposeMap;
+use crate::event::input::KeyMap;
+use crate::display::window::Position;
 
 pub fn expose(event: &xcb::GenericEvent) -> ExposeMap
 {

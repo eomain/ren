@@ -3,10 +3,6 @@ extern crate mirage;
 
 use mirage::convert::svg;
 use ren::render::Surface;
-use ren::render::Font;
-use ren::render::Line;
-use ren::render::Point;
-use ren::render::Rect;
 
 fn surface() -> Surface
 {

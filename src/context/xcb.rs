@@ -1,19 +1,19 @@
 
 use super::DisplayContext;
-use display::window::Window;
-use display::Manager;
-use render;
-use render::Surface;
-use render::Font;
-use render::Point;
-use render::Line;
-use render::Rect;
-use event;
-use event::Event;
-use event::InputEvent;
-use event::DisplayEvent;
-use event::input::KeyEvent;
-use event::input::MouseEvent;
+use crate::display::window::Window;
+use crate::display::Manager;
+use crate::render;
+use crate::render::Surface;
+use crate::render::Font;
+use crate::render::Point;
+use crate::render::Line;
+use crate::render::Rect;
+use crate::event;
+use crate::event::Event;
+use crate::event::InputEvent;
+use crate::event::DisplayEvent;
+use crate::event::input::KeyEvent;
+use crate::event::input::MouseEvent;
 
 pub fn init(context: &mut crate::Context)
 {

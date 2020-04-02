@@ -1,9 +1,9 @@
 
 pub mod xcb;
 
-use display::window::Window;
-use render::Surface;
-use event::Event;
+use crate::display::window::Window;
+use crate::render::Surface;
+use crate::event::Event;
 
 pub trait DisplayContext {
 
