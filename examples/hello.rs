@@ -2,11 +2,7 @@ extern crate ren;
 extern crate mirage;
 
 use mirage::convert::svg;
-use ren::render::Object::Primitive;
-use ren::render::Primitive::Text;
 use ren::render::Surface;
-use ren::render::Translate;
-use ren::render::Font;
 
 fn surface() -> Surface
 {
