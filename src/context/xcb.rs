@@ -66,6 +66,8 @@ pub struct Context
     /*root: xcb::Drawable*/
 }
 
+const FONT_BASE: i16 = 10;
+
 fn font(context: &Context, font: &Font)
 {
     let fid = context.connection.generate_id();
@@ -77,7 +79,7 @@ fn font(context: &Context, font: &Font)
         context.window,
         context.foreground,
         x,
-        y,
+        y + FONT_BASE,
         text
     );
 
