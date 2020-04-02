@@ -1,9 +1,9 @@
 
 pub mod window;
 
-use Context;
-use context::DisplayContext;
-use context::xcb;
+use crate::Context;
+use crate::context::DisplayContext;
+use crate::context::xcb;
 use self::window::Window;
 
 #[derive(Clone)]

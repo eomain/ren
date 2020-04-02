@@ -1,5 +1,5 @@
 
-use Context;
+use crate::Context;
 use super::Manager;
 
 pub type Position = (u32, u32);
@@ -94,7 +94,7 @@ impl<'a> Drop for Window<'a> {
     fn drop(&mut self)
     {
         if self.get_mapped() {
-            ::unmap(self);
+            crate::unmap(self);
         }
     }
 }

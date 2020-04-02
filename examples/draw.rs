@@ -1,11 +1,19 @@
 extern crate ren;
+extern crate mirage;
 
+use mirage::convert::svg;
 use ren::render::Surface;
-use ren::render::Font;
-use ren::render::Point;
-use ren::render::Rectangle;
-use ren::render::Transformation;
 
+fn surface() -> Surface
+{
+    svg::into::string(r#"
+        <svg>
+            <line x1="0" y1="0" x2="640" y2="480" />
+            <rect width="639" height="479" />
+            <line x1="640" y1="0" x2="0" y2="480" />
+        </svg>
+    "#).unwrap()
+}
 
 fn main()
 {
@@ -21,19 +29,7 @@ fn main()
     win.set_dimension((640, 480));
     win.set_origin((0, 0));
 
-    let point = Point::new(40, 10);
-    let mut rect = Rectangle::from_point(&point, 10, 10);
-    rect.translate((160, 4));
-    rect.scale(16.0);
-
-    let rects = [
-        rect,
-        Rectangle::from(200, 200, 160, 160),
-        Rectangle::from(400, 100, 30, 30),
-        Rectangle::from(400, 250, 80, 80)
-    ];
-
-    let surface = Surface::from(&rects);
+    let surface = surface();
 
     ren::map(&mut win);
 
@@ -45,7 +41,7 @@ fn main()
 
             ren::Event::Display(event) => {
                 match event {
-                    ren::DisplayEvent::Expose(map) => {
+                    ren::DisplayEvent::Expose(_) => {
                         ren::draw(&win, &surface);
                     },
 

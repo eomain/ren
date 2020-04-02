@@ -20,8 +20,8 @@ pub(crate) mod xcb;
 /// All events relating to the display
 pub mod display {
 
-    use display::window::Position;
-    use display::window::Dimension;
+    use crate::display::window::Position;
+    use crate::display::window::Dimension;
 
     /// A map of an area of the display
     /// that needs to be updated.
@@ -61,8 +61,8 @@ pub mod display {
 /// All events relating to user input
 pub mod input {
 
-    use display::window::Position;
-    use display::window::Dimension;
+    use crate::display::window::Position;
+    
 
     /// A mapping of KeyBoard events.
     #[derive(Debug)]

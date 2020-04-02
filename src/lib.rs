@@ -6,6 +6,7 @@
 //! the window surface.
 
 extern crate xcb;
+extern crate mirage;
 
 mod context;
 mod display;
@@ -14,11 +15,11 @@ pub mod event;
 pub mod render;
 
 pub mod prelude;
-pub use prelude::*;
+pub use crate::prelude::*;
 
-use display::Manager;
-use display::ManagerName;
-use render::Surface;
+use crate::display::Manager;
+use crate::display::ManagerName;
+use crate::render::Surface;
 
 pub struct Context {
     name: ManagerName,

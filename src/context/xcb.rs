@@ -1,19 +1,19 @@
 
 use super::DisplayContext;
-use display::window::Window;
-use display::Manager;
-use render;
-use render::Surface;
-use render::Font;
-use render::Point;
-use render::Line;
-use render::Rectangle as Rect;
-use event;
-use event::Event;
-use event::InputEvent;
-use event::DisplayEvent;
-use event::input::KeyEvent;
-use event::input::MouseEvent;
+use crate::display::window::Window;
+use crate::display::Manager;
+use crate::render;
+use crate::render::Surface;
+use crate::render::Font;
+use crate::render::Point;
+use crate::render::Line;
+use crate::render::Rect;
+use crate::event;
+use crate::event::Event;
+use crate::event::InputEvent;
+use crate::event::DisplayEvent;
+use crate::event::input::KeyEvent;
+use crate::event::input::MouseEvent;
 
 pub fn init(context: &mut crate::Context)
 {
@@ -56,6 +56,8 @@ pub struct Context
     /*root: xcb::Drawable*/
 }
 
+const FONT_BASE: i16 = 10;
+
 fn font(context: &Context, font: &Font)
 {
     let fid = context.connection.generate_id();
@@ -67,7 +69,7 @@ fn font(context: &Context, font: &Font)
         context.window,
         context.foreground,
         x,
-        y,
+        y + FONT_BASE,
         text
     );
 
@@ -275,22 +277,28 @@ impl DisplayContext for Context {
     fn draw(&self, surface: &Surface)
     {
         surface.for_each(|object| {
-            match *object {
-                render::Object::Font(ref f) => {
-                    font(self, f);
-                },
+            use render::Object;
+            use render::Primitive;
 
-                render::Object::Point(ref p) => {
-                    point(self, p);
-                },
+            match &*object {
+                Object::Primitive(p) => match p {
+                    Primitive::Text(ref f) => {
+                        font(self, f);
+                    },
 
-                render::Object::Line(ref l) => {
-                    line(self, l);
-                },
+                    Primitive::Point(ref p) => {
+                        point(self, p);
+                    },
 
-                render::Object::Rect(ref r) => {
-                    rect(self, r);
-                }
+                    Primitive::Line(ref l) => {
+                        line(self, l);
+                    },
+
+                    Primitive::Rect(ref r) => {
+                        rect(self, r);
+                    }
+                },
+                _ => ()
             }
         });
     }
