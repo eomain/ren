@@ -10,7 +10,7 @@ pub fn point(point: &Point) -> xcb::Point
 
 pub fn line(line: &Line) -> Vec<xcb::Point>
 {
-    line.points.iter().map(|p| point(p)).collect()
+    line.path().iter().map(|p| point(p)).collect()
 }
 
 pub fn rectangle(rect: &Rect) -> xcb::Rectangle
