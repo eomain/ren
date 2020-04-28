@@ -125,6 +125,15 @@ impl Connection {
         token
     }
 
+    /// End a current session
+    pub fn end(&mut self, token: &Token) -> Status
+    {
+        match self.sessions.remove(token) {
+            None => Err(Error::Token),
+            Some(_) => Ok(Message::empty())
+        }
+    }
+
     /// Send a session message
     pub fn send(&mut self, token: &Token, message: Message) -> Status
     {
@@ -156,11 +165,14 @@ impl Connection {
     }
 
     /// Flush the message queue
-    pub fn flush(&mut self, token: &Token)
+    pub fn flush(&mut self, token: &Token) -> Status
     {
         match self.sessions.get_mut(token) {
-            None => (),
-            Some(session) => session.complete()
+            None => Err(Error::Token),
+            Some(session) => {
+                session.complete();
+                Ok(Message::empty())
+            }
         }
     }
 }
