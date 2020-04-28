@@ -1,4 +1,6 @@
 
+extern crate xcb;
+
 use super::DisplayContext;
 use crate::display::window::Window;
 use crate::display::Manager;
@@ -15,45 +17,53 @@ use crate::event::DisplayEvent;
 use crate::event::input::KeyEvent;
 use crate::event::input::MouseEvent;
 
-pub fn init(context: &mut crate::Context)
+pub(crate) fn init(context: &mut crate::Context)
 {
-    context.set_map(map);
-    context.set_unmap(unmap);
-    context.set_draw(draw);
-    context.set_event(event);
+    context.map = Some(map);
+    context.unmap = Some(unmap);
+    context.draw = Some(draw);
+    context.event = Some(event);
 }
 
 fn map(manager: &Manager)
 {
-    let display = manager.xcb();
-    display.map();
+    match manager.xcb() {
+        Some(display) => display.map(),
+        _ => ()
+    }
 }
 
 fn unmap(manager: &Manager)
 {
-    let display = manager.xcb();
-    display.unmap();
+    match manager.xcb() {
+        Some(display) => display.unmap(),
+        _ => ()
+    }
 }
 
 fn draw(manager: &Manager, surface: &render::Surface)
 {
-    let display = manager.xcb();
-    display.draw(surface);
-    display.refresh();
+    match manager.xcb() {
+        Some(display) => {
+            display.draw(surface);
+            display.refresh();
+        },
+        _ => ()
+    }
 }
 
 fn event(manager: &Manager) -> Event
 {
-    let display = manager.xcb();
-    display.event()
+    match manager.xcb() {
+        Some(display) => display.event(),
+        _ => Event::None
+    }
 }
 
-pub struct Context
-{
+pub struct Context {
     connection: xcb::Connection,
     window: xcb::Window,
-    foreground: u32,
-    /*root: xcb::Drawable*/
+    foreground: u32
 }
 
 const FONT_BASE: i16 = 10;
@@ -152,8 +162,8 @@ impl DisplayContext for Context {
                  xcb::EVENT_MASK_BUTTON_MOTION)
             ];
 
-            let (x, y) = window.get_origin();
-            let (width, height) = window.get_dimension();
+            let (x, y) = window.origin();
+            let (width, height) = window.dimension();
             let border = 10;
 
             xcb::create_window(
@@ -178,7 +188,7 @@ impl DisplayContext for Context {
                 xcb::ATOM_WM_NAME,
                 xcb::ATOM_STRING,
                 8,
-                window.get_title().as_bytes()
+                window.title().as_bytes()
             );
 
             (id, fore)
@@ -277,8 +287,8 @@ impl DisplayContext for Context {
     fn draw(&self, surface: &Surface)
     {
         surface.for_each(|object| {
-            use render::Object;
-            use render::Primitive;
+            use crate::render::Object;
+            use crate::render::Primitive;
 
             match &*object {
                 Object::Primitive(p) => match p {

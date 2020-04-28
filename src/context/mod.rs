@@ -1,13 +1,15 @@
 
 pub mod xcb;
 
-use crate::display::window::Window;
-use crate::render::Surface;
-use crate::event::Event;
+use crate::{
+    Window,
+    render::Surface,
+    event::Event
+};
 
-pub trait DisplayContext {
+pub(crate) trait DisplayContext {
 
-    fn init(&Window) -> Self;
+    fn init(_: &Window) -> Self;
 
     fn map(&self);
 
@@ -15,7 +17,7 @@ pub trait DisplayContext {
 
     fn event(&self) -> Event;
 
-    fn draw(&self, &Surface);
+    fn draw(&self, _: &Surface);
 
     fn refresh(&self);
 }

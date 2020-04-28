@@ -1,3 +1,6 @@
+//! # Render
+
+//! Contains primatives for draw graphics to the display.
 
 pub use mirage::*;
 pub use mirage::object::{

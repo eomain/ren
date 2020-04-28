@@ -2,27 +2,37 @@ extern crate ren;
 
 fn main()
 {
-    let context = match ren::init() {
-        Ok(con) => con,
-        Err(_) => panic!("ren: cannot initialize!")
-    };
-
     let title = format!("Ren - example {}", file!());
 
-    let mut win = ren::Window::new(&context);
-    win.set_title(&title);
-    win.set_dimension((640, 480));
-    win.set_origin((0, 0));
+    // Open a connection
+    let mut connect = ren::Connection::new();
+    let token = connect.begin();
 
-    ren::map(&mut win);
+    // Request the window title
+    connect.send(&token, ren::Message::request(
+        ren::WindowCommand::Title(title)
+    ));
 
-    ren::events(&win, |event| {
-        match event {
-            ren::Event::Terminate => {
+    // Request the window dimensions
+    connect.send(&token, ren::Message::request(
+        ren::WindowCommand::Dimension((640, 480))
+    ));
 
-            },
+    // Map the window
+    connect.send(&token, ren::Message::request(
+        ren::WindowCommand::Map
+    ));
 
-            ren::Event::Input(event) => {
+    loop {
+        // Wait for an event
+        let message = connect.wait(&token).unwrap();
+        println!("{:?}", message);
+
+        match message.body() {
+            // Terminate response
+            ren::Body::Event(ren::Event::Terminate) => break,
+            // Input response
+            ren::Body::Event(ren::Event::Input(event)) => {
                 match event {
                     ren::InputEvent::Key(event) => {
                         match event {
@@ -58,9 +68,8 @@ fn main()
 
                     _ => ()
                 }
-            },
-
+            }
             _ => ()
         }
-    });
+    }
 }

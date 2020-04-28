@@ -1,5 +1,5 @@
 //! # Events
-//! In `ren`, when an event is received
+//! In `Ren`, when an event is received
 //! an `Event` object is returned.
 //! All information about the event,
 //! such as the type and relating metadata
@@ -7,11 +7,11 @@
 //!
 //! ## Events categories:
 //!
-//! `display` events refer to things such as
+//! `DisplayEvent` refers to things such as
 //! an expose area of the display that needs to
 //! updated.
 //!
-//! `input` events refer to user input that
+//! `InputEvent` events refer to user input that
 //! is generated from devices such as a mouse
 //! and keyboard.
 
@@ -25,6 +25,7 @@ pub mod display {
 
     /// A map of an area of the display
     /// that needs to be updated.
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct ExposeMap {
         /// The position within the display.
         pos: Position,
@@ -62,10 +63,10 @@ pub mod display {
 pub mod input {
 
     use crate::display::window::Position;
-    
+
 
     /// A mapping of KeyBoard events.
-    #[derive(Debug)]
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub enum KeyMap {
         ESC,
         F1,
@@ -132,6 +133,7 @@ pub mod input {
     }
 
     /// The type of Key event.
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub enum KeyEvent {
         /// A Key press has occured.
         Press(KeyMap),
@@ -139,6 +141,7 @@ pub mod input {
         Release(KeyMap)
     }
 
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct ButtonMap {
         pos: Position
     }
@@ -152,6 +155,7 @@ pub mod input {
     }
 
     /// The type of mouse event
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub enum MouseEvent {
         /// A Mouse press has occured.
         Press(Position),
@@ -164,12 +168,14 @@ pub mod input {
 }
 
 /// A display event
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum DisplayEvent {
     /// An area of the display to be updated.
     Expose(display::ExposeMap)
 }
 
 /// An input event
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum InputEvent {
     /// A signal for a Key (KeyBoard) event.
     Key(input::KeyEvent),
@@ -178,6 +184,7 @@ pub enum InputEvent {
 }
 
 /// A ren event
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Event {
     /// No event has occured.
     None,

@@ -18,37 +18,50 @@ fn surface() -> Surface
 
 #[test]
 fn main() {
-    let context = match ren::init() {
-        Ok(con) => con,
-        Err(_) => panic!("ren: cannot initialize!")
-    };
+    let title = format!("Ren - example");
 
-    let mut win = ren::Window::new(&context);
-    win.set_title("Ren - example");
-    win.set_dimension((640, 480));
-    win.set_origin((0, 0));
+    // Open a connection
+    let mut connect = ren::Connection::new();
+    let token = connect.begin();
 
-    let surface = surface();
+    // Request the window title
+    connect.send(&token, ren::Message::request(
+        ren::WindowCommand::Title(title)
+    ));
 
-    ren::map(&mut win);
+    // Request the window dimensions
+    connect.send(&token, ren::Message::request(
+        ren::WindowCommand::Dimension((640, 480))
+    ));
 
-    ren::events(&win, |event| {
-        match event {
-            ren::Event::Terminate => {
+    // Map the window
+    connect.send(&token, ren::Message::request(
+        ren::WindowCommand::Map
+    ));
 
-            },
+    loop {
+        // Wait for an event
+        let message = connect.wait(&token).unwrap();
+        println!("{:?}", message);
 
-            ren::Event::Display(event) => {
+        match message.body() {
+            // Terminate response
+            ren::Body::Event(ren::Event::Terminate) => break,
+            // Display response
+            ren::Body::Event(ren::Event::Display(event)) => {
+                // Expose response
                 if let ren::DisplayEvent::Expose(map) = event {
                     let (x, y) = map.position();
                     let (w, h) = map.dimension();
                     println!("pos: ({}, {}), dim: ({}, {})", x, y, w, h);
-
-                    ren::draw(&win, &surface);
+                    // Draw on the window
+                    connect.send(&token, ren::Message::request(
+                        ren::WindowCommand::Draw(surface())
+                    ));
                 }
             },
-
-            ren::Event::Input(event) => {
+            // Input response
+            ren::Body::Event(ren::Event::Input(event)) => {
                 match event {
                     ren::InputEvent::Key(event) => {
                         match event {
@@ -84,9 +97,8 @@ fn main() {
 
                     _ => ()
                 }
-            },
-
+            }
             _ => ()
         }
-    });
+    }
 }

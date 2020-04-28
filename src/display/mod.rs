@@ -1,67 +1,63 @@
 
 pub mod window;
 
-use crate::Context;
-use crate::context::DisplayContext;
-use crate::context::xcb;
-use self::window::Window;
+pub(crate) use window::Window;
 
-#[derive(Clone)]
-pub enum ManagerName {
+use crate::{
+    Context,
+    context::{
+        DisplayContext,
+        xcb
+    }
+};
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum ManagerName {
     None,
-    XCB
+    Xcb
 }
 
 impl ManagerName {
-
     pub fn default() -> Self
     {
-        ManagerName::XCB
+        // TODO
+        ManagerName::Xcb
     }
-
-}
-
-impl ManagerName {
 
     pub fn init(&self, context: &mut Context)
     {
         match self {
-            ManagerName::XCB =>
+            ManagerName::Xcb =>
                 xcb::init(context),
 
             _ => ()
         }
     }
-
 }
 
-pub enum Manager {
+pub(crate) enum Manager {
     None,
-    XCB(xcb::Context)
+    Xcb(xcb::Context)
 }
 
 impl Manager {
-
-    pub fn init(name: &ManagerName, window: &mut Window)
+    pub fn new(name: &ManagerName, window: &crate::Window) -> Manager
     {
         match *name {
-            ManagerName::None => (),
-            ManagerName::XCB  => {
-                let manager = Manager::XCB(xcb::Context::init(window));
-                window.set_manager(manager);
+            ManagerName::None => Manager::None,
+            ManagerName::Xcb  => {
+                Manager::Xcb(xcb::Context::init(window))
             }
         }
     }
 }
 
 impl Manager {
-
-    pub fn xcb(&self) -> &xcb::Context
+    pub fn xcb(&self) -> Option<&xcb::Context>
     {
         match self {
-            Manager::XCB(context) => context,
-            _ => panic!()
+            Manager::Xcb(context) => Some(context),
+            _ => None
         }
     }
-
 }

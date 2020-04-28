@@ -15,35 +15,46 @@ fn surface() -> Surface
 
 fn main()
 {
-    let context = match ren::init() {
-        Ok(con) => con,
-        Err(_) => panic!("ren: cannot initialize!")
-    };
-
     let title = format!("Ren - example {}", file!());
 
-    let mut win = ren::Window::new(&context);
-    win.set_title(&title);
-    win.set_dimension((640, 480));
-    win.set_origin((0, 0));
+    // Open a connection
+    let mut connect = ren::Connection::new();
+    let token = connect.begin();
 
-    let surface = surface();
+    // Request the window title
+    connect.send(&token, ren::Message::request(
+        ren::WindowCommand::Title(title)
+    ));
 
-    ren::map(&mut win);
+    // Request the window dimensions
+    connect.send(&token, ren::Message::request(
+        ren::WindowCommand::Dimension((640, 480))
+    ));
 
-    ren::events(&win, |event| {
-        match event {
-            ren::Event::Terminate => {
+    // Map the window
+    connect.send(&token, ren::Message::request(
+        ren::WindowCommand::Map
+    ));
 
-            },
+    loop {
+        // Wait for an event
+        let message = connect.wait(&token).unwrap();
+        println!("{:?}", message);
 
-            ren::Event::Display(event) => {
+        match message.body() {
+            // Terminate response
+            ren::Body::Event(ren::Event::Terminate) => break,
+            // Display response
+            ren::Body::Event(ren::Event::Display(event)) => {
+                // Expose response
                 if let ren::DisplayEvent::Expose(_) = event {
-                    ren::draw(&win, &surface);
+                    // Draw on the window
+                    connect.send(&token, ren::Message::request(
+                        ren::WindowCommand::Draw(surface())
+                    ));
                 }
             },
-
             _ => ()
         }
-    });
+    }
 }

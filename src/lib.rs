@@ -1,11 +1,10 @@
 //! # Ren
 
-//! `ren` is library that provides basic access
+//! `Ren` is library that provides basic access
 //! to the client windowing system. There is
 //! support for rendering primative drawing operations to
-//! the window surface.
+//! the window surface. All communication is done via messages.
 
-extern crate xcb;
 extern crate mirage;
 
 mod context;
@@ -13,20 +12,165 @@ mod display;
 
 pub mod event;
 pub mod render;
+pub mod message;
 
-pub mod prelude;
-pub use crate::prelude::*;
+mod prelude;
+pub use prelude::*;
 
-use crate::display::Manager;
-use crate::display::ManagerName;
-use crate::render::Surface;
+use render::Surface;
+use display::{
+    Manager,
+    ManagerName,
+    Window
+};
+use std::collections::HashMap;
 
-pub struct Context {
+/// A single window session
+struct Session {
+    queue: MessageQueue,
+    context: Context,
+    window: Window
+}
+
+impl Session {
+    fn new() -> Self
+    {
+        let name = ManagerName::default();
+        let mut context = Context::new(name);
+        context.init();
+
+        Self {
+            queue: MessageQueue::new(),
+            context,
+            window: Window::default(name)
+        }
+    }
+
+    fn poll(&self) -> Status
+    {
+        let event = self.window.event(&self.context);
+        Ok(Message::response(event))
+    }
+
+    fn command(&mut self, command: &Command)
+    {
+        match command {
+            Command::Window(w) => {
+                use WindowCommand::*;
+                match w {
+                    Title(title) => {
+                        self.window.title = title.clone();
+                    },
+                    Dimension(dimension) => {
+                        self.window.dimension = *dimension;
+                    },
+                    Origin(origin) => {
+                        self.window.origin = *origin;
+                    },
+                    Map => self.window.map(&self.context),
+                    Unmap => self.window.unmap(&self.context),
+                    Draw(s) => self.window.draw(&self.context, s)
+                }
+            },
+            _ => ()
+        }
+    }
+
+    fn body(&mut self, body: &Body)
+    {
+        match body {
+            Body::Command(c) => self.command(c),
+            _ => ()
+        }
+    }
+
+    fn handle(&mut self, message: Message) -> Status
+    {
+        use Type::*;
+        match message.ty() {
+            Request => self.body(message.body()),
+            _ => return Err(Error::Type)
+        }
+        Ok(Message::empty())
+    }
+
+    fn complete(&mut self)
+    {
+        while let Some(message) = self.queue.front() {
+            self.handle(message);
+        }
+    }
+}
+
+/// A `Connection` is used as the channel for communication
+pub struct Connection {
+    sessions: HashMap<Token, Session>
+}
+
+impl Connection {
+    /// Create a new connection for communication
+    pub fn new() -> Self
+    {
+        Self {
+            sessions: HashMap::new()
+        }
+    }
+
+    /// Begin a new session
+    pub fn begin(&mut self) -> Token
+    {
+        let token = Token::new();
+        let session = Session::new();
+        self.sessions.insert(token.clone(), session);
+        token
+    }
+
+    /// Send a session message
+    pub fn send(&mut self, token: &Token, message: Message) -> Status
+    {
+        match self.sessions.get_mut(token) {
+            None => Err(Error::Token),
+            Some(session) => session.handle(message)
+        }
+    }
+
+    /// Wait for an event message
+    pub fn wait(&self, token: &Token) -> Status
+    {
+        match self.sessions.get(token) {
+            None => Err(Error::Token),
+            Some(session) => session.poll()
+        }
+    }
+
+    /// Enqueue a sequence of messages
+    pub fn enqueue(&mut self, token: &Token, mut queue: MessageQueue) -> Status
+    {
+        match self.sessions.get_mut(token) {
+            None => Err(Error::Token),
+            Some(session) => {
+                session.queue.join(&mut queue);
+                Ok(Message::empty())
+            }
+        }
+    }
+
+    /// Flush the message queue
+    pub fn flush(&mut self, token: &Token)
+    {
+        match self.sessions.get_mut(token) {
+            None => (),
+            Some(session) => session.complete()
+        }
+    }
+}
+
+pub(crate) struct Context {
     name: ManagerName,
-    map: Option<fn(&Manager)>,
-    unmap: Option<fn(&Manager)>,
-    draw: Option<fn(&Manager, &render::Surface)>,
-    event: Option<fn(&Manager) -> Event>
+    pub map: Option<fn(&Manager)>,
+    pub unmap: Option<fn(&Manager)>,
+    pub draw: Option<fn(&Manager, &render::Surface)>,
+    pub event: Option<fn(&Manager) -> Event>
 }
 
 impl Context {
@@ -47,32 +191,12 @@ impl Context {
 
     fn init(&mut self)
     {
-        self.get_name().init(self);
+        self.name().init(self);
     }
 
-    fn get_name(&self) -> ManagerName
+    fn name(&self) -> ManagerName
     {
         self.name.clone()
-    }
-
-    fn set_map(&mut self, func: fn(&Manager))
-    {
-        self.map = Some(func);
-    }
-
-    fn set_unmap(&mut self, func: fn(&Manager))
-    {
-        self.unmap = Some(func);
-    }
-
-    fn set_draw(&mut self, func: fn(&Manager, &render::Surface))
-    {
-        self.draw = Some(func);
-    }
-
-    fn set_event(&mut self, func: fn(&Manager) -> Event)
-    {
-        self.event = Some(func);
     }
 }
 
@@ -81,82 +205,5 @@ impl Drop for Context {
     fn drop(&mut self)
     {
 
-    }
-}
-
-pub fn init() -> Result<Context, ()>
-{
-
-    let mut context = Context::new(
-        ManagerName::default()
-    );
-
-    context.init();
-
-    if let ManagerName::None = context.get_name() {
-        Err(())
-    } else {
-        Ok(context)
-    }
-}
-
-pub fn map(window: &mut Window)
-{
-    if !window.get_mapped() {
-        let name = window.get_context().get_name();
-        Manager::init(&name, window);
-        window.set_mapped(true);
-    }
-
-    let context = window.get_context();
-
-    if let Some(map) = context.map {
-        map(window.get_manager());
-    }
-}
-
-pub fn unmap(window: &mut Window)
-{
-    {
-        let context = window.get_context();
-
-        if let Some(unmap) = context.unmap {
-            unmap(window.get_manager());
-        }
-    }
-
-    window.set_mapped(false);
-}
-
-pub fn draw(window: &Window, surface: &Surface)
-{
-    let context = window.get_context();
-
-    if let Some(draw) = context.draw {
-        draw(window.get_manager(), surface);
-    }
-}
-
-pub fn events<F>(window: &Window, event_loop: F)
-    where F: Fn(Event)
-{
-    let context = window.get_context();
-
-    if let Some(event) = context.event {
-        loop {
-            let event = event(window.get_manager());
-
-            let term = match event {
-                Event::None => continue,
-                Event::Terminate => true,
-                _ => false
-            };
-
-            event_loop(event);
-
-            if term {
-                return;
-            }
-        }
     }
 }

@@ -1,100 +1,91 @@
 
-use crate::Context;
-use super::Manager;
+use crate::{
+    Context,
+    event::Event
+};
+use super::{
+    Manager,
+    ManagerName
+};
+use mirage::surface::Surface;
 
 pub type Position = (u32, u32);
 
 pub type Dimension = (u32, u32);
 
-pub struct Window<'a> {
-    title: String,
-    origin: Position,
-    dimension: Dimension,
+pub(crate) struct Window {
+    init: bool,
+    pub title: String,
+    pub origin: (u32, u32),
+    pub dimension: (u32, u32),
     mapped: bool,
     manager: Manager,
-    context: &'a Context
+    name: ManagerName
 }
 
-impl<'a> Window<'a> {
-
-    pub fn new(context: &'a Context) -> Self
+impl Window {
+    pub fn default(name: ManagerName) -> Self
     {
         Self {
-            title: String::new(),
+            init: false,
+            title: "".into(),
             origin: (0, 0),
             dimension: (0, 0),
             mapped: false,
             manager: Manager::None,
-            context
+            name
         }
     }
-}
 
-impl<'a> Window<'a> {
+    pub fn map(&mut self, context: &Context)
+    {
+        if !self.mapped {
+            self.manager = Manager::new(&self.name, self);
+            if let Some(map) = context.map {
+                map(&self.manager);
+            }
+            self.mapped = true;
+        }
+    }
 
-    pub fn get_title(&self) -> &String
+    pub fn unmap(&mut self, context: &Context)
+    {
+        if self.mapped {
+            if let Some(unmap) = context.unmap {
+                unmap(&self.manager);
+            }
+            self.mapped = false;
+        }
+    }
+
+    pub fn draw(&mut self, context: &Context, surface: &Surface)
+    {
+        if let Some(draw) = context.draw {
+            draw(&self.manager, surface);
+        }
+    }
+
+    pub fn event(&self, context: &Context) -> Event
+    {
+        if let Some(event) = context.event {
+            event(&self.manager)
+        } else {
+            Event::None
+        }
+    }
+
+    pub fn title(&self) -> &str
     {
         &self.title
     }
 
-    pub fn get_origin(&self) -> Position
+    pub fn origin(&self) -> (u32, u32)
     {
         self.origin
     }
 
-    pub fn get_dimension(&self) -> Dimension
+    pub fn dimension(&self) -> (u32, u32)
     {
         self.dimension
-    }
-
-    pub(crate) fn get_manager(&self) -> &Manager
-    {
-        &self.manager
-    }
-
-    pub fn get_context(&self) -> &Context
-    {
-        &self.context
-    }
-
-    pub fn set_title(&mut self, title: &str)
-    {
-        self.title.clear();
-        self.title.push_str(title);
-    }
-
-    pub fn set_origin(&mut self, origin: Position)
-    {
-        self.origin = origin;
-    }
-
-    pub fn set_dimension(&mut self, dim: Dimension)
-    {
-        self.dimension = dim;
-    }
-
-    pub(crate) fn set_manager(&mut self, manager: Manager)
-    {
-        self.manager = manager;
-    }
-
-    pub fn get_mapped(&self) -> bool
-    {
-        self.mapped
-    }
-
-    pub(crate) fn set_mapped(&mut self, mapped: bool)
-    {
-        self.mapped = mapped;
-    }
-}
-
-impl<'a> Drop for Window<'a> {
-
-    fn drop(&mut self)
-    {
-        if self.get_mapped() {
-            crate::unmap(self);
-        }
     }
 }

@@ -2,10 +2,12 @@
 name = "ren"
 version = "0.1.0"
 authors = ["eomain"]
+edition = "2018"
 
 [dependencies]
 mirage = { git = "https://github.com/eomain/mirage" }
 xcb = "0.8"
+uuid = { version = "0.4", features = ["v4"] }
 
 [profile.dev]
 opt-level = 0

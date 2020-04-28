@@ -17,39 +17,52 @@ fn surface() -> Surface
 
 fn main()
 {
-    let context = match ren::init() {
-        Ok(con) => con,
-        Err(_) => panic!("ren: cannot initialize!")
-    };
-
     let title = format!("Ren - example {}", file!());
 
-    let mut win = ren::Window::new(&context);
-    win.set_title(&title);
-    win.set_dimension((640, 480));
-    win.set_origin((0, 0));
+    // Open a connection
+    let mut connect = ren::Connection::new();
+    let token = connect.begin();
 
-    let surface = surface();
+    // Create a message queue
+    let mut queue = ren::MessageQueue::new();
 
-    ren::map(&mut win);
+    // Request the window title
+    queue.enqueue(ren::Message::request(
+        ren::WindowCommand::Title(title)
+    ));
+    // Request the window dimensions
+    queue.enqueue(ren::Message::request(
+        ren::WindowCommand::Dimension((640, 480))
+    ));
+    // Map the window
+    queue.enqueue(ren::Message::request(
+        ren::WindowCommand::Map
+    ));
 
-    ren::events(&win, |event| {
-        match event {
-            ren::Event::Terminate => {
+    // Append to the connection message queue
+    connect.enqueue(&token, queue);
+    // Clear out the message queue
+    connect.flush(&token);
 
-            },
+    loop {
+        // Wait for an event
+        let message = connect.wait(&token).unwrap();
+        println!("{:?}", message);
 
-            ren::Event::Display(event) => {
-                match event {
-                    ren::DisplayEvent::Expose(_) => {
-                        ren::draw(&win, &surface);
-                    },
-
-                    _ => ()
+        match message.body() {
+            // Terminate response
+            ren::Body::Event(ren::Event::Terminate) => break,
+            // Display response
+            ren::Body::Event(ren::Event::Display(event)) => {
+                // Expose response
+                if let ren::DisplayEvent::Expose(_) = event {
+                    // Draw on the window
+                    connect.send(&token, ren::Message::request(
+                        ren::WindowCommand::Draw(surface())
+                    ));
                 }
             },
-
             _ => ()
         }
-    });
+    }
 }
