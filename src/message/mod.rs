@@ -90,8 +90,8 @@ pub enum Error {
     Custom(String)
 }
 
-impl From<Error> for String {
-    fn from(e: Error) -> Self
+impl From<&Error> for String {
+    fn from(e: &Error) -> Self
     {
         use Error::*;
         match e {
@@ -99,6 +99,13 @@ impl From<Error> for String {
             Token => "specified undefined token".into(),
             Custom(s) => s.into()
         }
+    }
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error>
+    {
+        write!(f, "{}", String::from(self))
     }
 }
 
@@ -234,5 +241,11 @@ mod tests {
         let mut queue = MessageQueue::new();
         queue.enqueue(Message::empty());
         println!("{:?}", queue);
+    }
+
+    #[test]
+    fn error()
+    {
+        println!("{}", Error::Token);
     }
 }
