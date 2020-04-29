@@ -36,6 +36,13 @@ pub enum Body {
     Custom(String)
 }
 
+impl Default for Body {
+    fn default() -> Self
+    {
+        Body::None
+    }
+}
+
 /// A `Message` command. Found within the
 /// body of the message.
 #[derive(Debug, Clone, PartialEq)]
@@ -183,6 +190,12 @@ impl Message {
     pub fn body(&self) -> &Body
     {
         &self.body
+    }
+
+    /// Take the body of the message
+    pub fn take_body(&mut self) -> Body
+    {
+        std::mem::take(&mut self.body)
     }
 
     /// If the message is empty
