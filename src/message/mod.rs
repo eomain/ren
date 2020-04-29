@@ -140,7 +140,7 @@ pub struct Message {
     /// message type
     ty: Type,
     /// message body
-    body: Body
+    pub(crate) body: Body
 }
 
 impl Message {
@@ -273,6 +273,11 @@ impl MessageQueue {
                 false
             }
         }
+    }
+
+    pub(crate) fn messages(&self) -> &[Message]
+    {
+        &self.messages
     }
 
     pub(crate) fn join(&mut self, other: &mut Self)

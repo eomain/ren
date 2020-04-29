@@ -27,7 +27,7 @@ use std::collections::HashMap;
 
 /// A single window session
 struct Session {
-    queue: MessageQueue,
+    batch: HashMap<Token, MessageQueue>,
     context: Context,
     window: Window
 }
@@ -40,7 +40,7 @@ impl Session {
         context.init();
 
         Self {
-            queue: MessageQueue::new(),
+            batch: HashMap::new(),
             context,
             window: Window::default(name)
         }
@@ -52,20 +52,20 @@ impl Session {
         Ok(Message::response(event))
     }
 
-    fn command(&mut self, command: Command)
+    fn command(&mut self, command: &Command)
     {
         match command {
             Command::Window(w) => {
                 use WindowCommand::*;
                 match w {
                     Title(title) => {
-                        self.window.title = title;
+                        self.window.title = title.into();
                     },
                     Dimension(dimension) => {
-                        self.window.dimension = dimension;
+                        self.window.dimension = *dimension;
                     },
                     Origin(origin) => {
-                        self.window.origin = origin;
+                        self.window.origin = *origin;
                     },
                     Map => self.window.map(&self.context),
                     Unmap => self.window.unmap(&self.context),
@@ -76,7 +76,7 @@ impl Session {
         }
     }
 
-    fn body(&mut self, body: Body)
+    fn body(&mut self, body: &Body)
     {
         match body {
             Body::Command(c) => self.command(c),
@@ -84,21 +84,30 @@ impl Session {
         }
     }
 
-    fn handle(&mut self, mut message: Message) -> Status
+    fn handle(&mut self, message: &Message) -> Status
     {
         use Type::*;
         match message.ty() {
-            Request => self.body(message.take_body()),
+            Request => self.body(&message.body),
             _ => return Err(Error::Type)
         }
         Ok(Message::empty())
     }
 
-    fn complete(&mut self)
+    fn run(&mut self, token: &Token) -> Status
     {
-        while let Some(message) = self.queue.front() {
+        let queue = match self.batch.remove(token) {
+            None => return Err(Error::Token),
+            Some(queue) => queue
+        };
+
+        for message in queue.messages() {
             self.handle(message);
         }
+
+        self.batch.insert(token.clone(), queue);
+
+        Ok(Message::empty())
     }
 }
 
@@ -145,7 +154,7 @@ impl Connection {
     {
         match self.sessions.get_mut(token) {
             None => Err(Error::Token),
-            Some(session) => session.handle(message)
+            Some(session) => session.handle(&message)
         }
     }
 
@@ -158,27 +167,25 @@ impl Connection {
         }
     }
 
-    /// Batch a sequence of messages
-    pub fn batch(&mut self, token: &Token, mut queue: MessageQueue) -> Status
+    /// Batch a sequence of messages and return a batch token
+    pub fn batch(&mut self, token: &Token, mut queue: MessageQueue) -> Result<Token, Error>
     {
         match self.sessions.get_mut(token) {
             None => Err(Error::Token),
             Some(session) => {
-                session.queue.join(&mut queue);
-                Ok(Message::empty())
+                let token = Token::new();
+                session.batch.insert(token.clone(), queue);
+                Ok(token)
             }
         }
     }
 
-    /// Dispatch the message queue
-    pub fn dispatch(&mut self, token: &Token) -> Status
+    /// Dispatch the message queue using a batch token
+    pub fn dispatch(&mut self, token: &Token, batch: &Token) -> Status
     {
         match self.sessions.get_mut(token) {
             None => Err(Error::Token),
-            Some(session) => {
-                session.complete();
-                Ok(Message::empty())
-            }
+            Some(session) => session.run(batch)
         }
     }
 }

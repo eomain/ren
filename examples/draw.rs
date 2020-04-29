@@ -40,9 +40,9 @@ fn main()
     ));
 
     // Append to the connection message queue
-    connect.batch(&token, queue);
+    let batch = connect.batch(&token, queue).unwrap();
     // Clear out the message queue
-    connect.dispatch(&token);
+    connect.dispatch(&token, &batch);
 
     loop {
         // Wait for an event
