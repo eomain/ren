@@ -211,7 +211,8 @@ impl Message {
 /// The message queue
 #[derive(Debug, Clone, PartialEq)]
 pub struct MessageQueue {
-    messages: Vec<Message>
+    messages: Vec<Message>,
+    limit: Option<usize>
 }
 
 impl MessageQueue {
@@ -219,13 +220,21 @@ impl MessageQueue {
     pub fn new() -> Self
     {
         Self {
-            messages: Vec::new()
+            messages: Vec::new(),
+            limit: None
         }
     }
 
     /// Append a message to the queue
     pub fn enqueue(&mut self, message: Message)
     {
+        if let Some(0) = self.limit {
+            return;
+        }
+
+        if self.full() {
+            self.front();
+        }
         self.messages.push(message);
     }
 
@@ -236,6 +245,33 @@ impl MessageQueue {
             Some(self.messages.remove(0))
         } else {
             None
+        }
+    }
+
+    /// Optionally add a limit on the queue size
+    pub fn limit(&mut self, limit: Option<usize>)
+    {
+        self.limit = limit;
+    }
+
+    /// Get the number of message in the queue
+    #[inline]
+    pub fn size(&self) -> usize
+    {
+        self.messages.len()
+    }
+
+    /// Check if the queue is full
+    #[inline]
+    pub fn full(&self) -> bool
+    {
+        match self.limit {
+            None => false,
+            Some(limit) => if limit == self.size() {
+                true
+            } else {
+                false
+            }
         }
     }
 
@@ -252,8 +288,10 @@ mod tests {
     fn message()
     {
         let mut queue = MessageQueue::new();
+        queue.limit(Some(0));
         queue.enqueue(Message::empty());
         println!("{:?}", queue);
+        assert_eq!(true, queue.full());
     }
 
     #[test]
