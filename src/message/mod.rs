@@ -254,7 +254,7 @@ impl MessageQueue {
         self.limit = limit;
     }
 
-    /// Get the number of message in the queue
+    /// Get the number of messages in the queue
     #[inline]
     pub fn size(&self) -> usize
     {
