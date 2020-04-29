@@ -134,6 +134,12 @@ impl Connection {
         }
     }
 
+    /// Check if the connection is active
+    pub fn active(&self, token: &Token) -> bool
+    {
+        self.sessions.contains_key(token)
+    }
+
     /// Send a session message
     pub fn send(&mut self, token: &Token, message: Message) -> Status
     {
