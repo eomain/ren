@@ -140,7 +140,7 @@ pub struct Message {
     /// message type
     ty: Type,
     /// message body
-    pub(crate) body: Body
+    body: Body
 }
 
 impl Message {

@@ -88,7 +88,7 @@ impl Session {
     {
         use Type::*;
         match message.ty() {
-            Request => self.body(&message.body),
+            Request => self.body(&message.body()),
             _ => return Err(Error::Type)
         }
         Ok(Message::empty())
