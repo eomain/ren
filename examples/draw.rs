@@ -40,9 +40,9 @@ fn main()
     ));
 
     // Append to the connection message queue
-    connect.enqueue(&token, queue);
+    connect.batch(&token, queue);
     // Clear out the message queue
-    connect.flush(&token);
+    connect.dispatch(&token);
 
     loop {
         // Wait for an event

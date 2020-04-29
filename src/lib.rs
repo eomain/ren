@@ -158,8 +158,8 @@ impl Connection {
         }
     }
 
-    /// Enqueue a sequence of messages
-    pub fn enqueue(&mut self, token: &Token, mut queue: MessageQueue) -> Status
+    /// Batch a sequence of messages
+    pub fn batch(&mut self, token: &Token, mut queue: MessageQueue) -> Status
     {
         match self.sessions.get_mut(token) {
             None => Err(Error::Token),
@@ -170,8 +170,8 @@ impl Connection {
         }
     }
 
-    /// Flush the message queue
-    pub fn flush(&mut self, token: &Token) -> Status
+    /// Dispatch the message queue
+    pub fn dispatch(&mut self, token: &Token) -> Status
     {
         match self.sessions.get_mut(token) {
             None => Err(Error::Token),
