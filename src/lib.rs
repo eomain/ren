@@ -52,31 +52,31 @@ impl Session {
         Ok(Message::response(event))
     }
 
-    fn command(&mut self, command: &Command)
+    fn command(&mut self, command: Command)
     {
         match command {
             Command::Window(w) => {
                 use WindowCommand::*;
                 match w {
                     Title(title) => {
-                        self.window.title = title.clone();
+                        self.window.title = title;
                     },
                     Dimension(dimension) => {
-                        self.window.dimension = *dimension;
+                        self.window.dimension = dimension;
                     },
                     Origin(origin) => {
-                        self.window.origin = *origin;
+                        self.window.origin = origin;
                     },
                     Map => self.window.map(&self.context),
                     Unmap => self.window.unmap(&self.context),
-                    Draw(s) => self.window.draw(&self.context, s)
+                    Draw(s) => self.window.draw(&self.context, &s)
                 }
             },
             _ => ()
         }
     }
 
-    fn body(&mut self, body: &Body)
+    fn body(&mut self, body: Body)
     {
         match body {
             Body::Command(c) => self.command(c),
@@ -84,11 +84,11 @@ impl Session {
         }
     }
 
-    fn handle(&mut self, message: Message) -> Status
+    fn handle(&mut self, mut message: Message) -> Status
     {
         use Type::*;
         match message.ty() {
-            Request => self.body(message.body()),
+            Request => self.body(message.take_body()),
             _ => return Err(Error::Type)
         }
         Ok(Message::empty())
