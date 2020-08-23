@@ -1,5 +1,8 @@
 
-ren is library that provides basic access
-to the client windowing system. There is
-support for rendering primative drawing operations to
-the window surface.
+Ren
+
+A data-driven, event based library for communicating with the underlying
+windowing system (X11, XCB, etc.) via a relatively stateless and extensible
+messaging interface.
+Messages exchanged between the client program and the display server, can
+be either a request (e.g. map the window) or a response (e.g. a key-press).
