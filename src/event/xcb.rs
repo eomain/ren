@@ -62,9 +62,27 @@ fn keymap(code: xcb::ffi::xcb_keycode_t) -> KeyMap
      (pos.event_x() as u32, pos.event_y() as u32)
  }
 
-pub fn mouse_hover(event: &xcb::GenericEvent) -> Position
+pub fn mouse_move(event: &xcb::GenericEvent) -> Position
 {
     let pos: &xcb::MotionNotifyEvent = unsafe {
+        xcb::cast_event(event)
+    };
+
+    (pos.event_x() as u32, pos.event_y() as u32)
+}
+
+pub fn mouse_enter(event: &xcb::GenericEvent) -> Position
+{
+    let pos: &xcb::EnterNotifyEvent = unsafe {
+        xcb::cast_event(event)
+    };
+
+    (pos.event_x() as u32, pos.event_y() as u32)
+}
+
+pub fn mouse_leave(event: &xcb::GenericEvent) -> Position
+{
+    let pos: &xcb::LeaveNotifyEvent = unsafe {
         xcb::cast_event(event)
     };
 

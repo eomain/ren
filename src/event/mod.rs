@@ -161,8 +161,12 @@ pub mod input {
         Press(Position),
         /// A Mouse release has occured.
         Release(Position),
-        /// A Mouse hover has occured.
-        Hover(Position)
+        /// A Mouse movement has occured.
+        Move(Position),
+        /// The Mouse pointer has entered the Window
+        Enter(Position),
+        /// The Mouse pointer has left the Window
+        Leave(Position)
     }
 
 }

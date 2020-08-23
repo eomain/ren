@@ -128,6 +128,22 @@ fn rect(context: &Context, rect: &Rect)
     );
 }
 
+static EVENT_MASK: xcb::EventMask = (
+    xcb::EVENT_MASK_EXPOSURE |
+    xcb::EVENT_MASK_KEY_PRESS |
+    xcb::EVENT_MASK_BUTTON_PRESS |
+    xcb::EVENT_MASK_BUTTON_RELEASE |
+    xcb::EVENT_MASK_POINTER_MOTION |
+    xcb::EVENT_MASK_BUTTON_MOTION |
+    xcb::EVENT_MASK_BUTTON_1_MOTION |
+    xcb::EVENT_MASK_BUTTON_2_MOTION |
+    xcb::EVENT_MASK_BUTTON_3_MOTION |
+    xcb::EVENT_MASK_BUTTON_4_MOTION |
+    xcb::EVENT_MASK_BUTTON_5_MOTION |
+    xcb::EVENT_MASK_ENTER_WINDOW |
+    xcb::EVENT_MASK_LEAVE_WINDOW
+);
+
 impl DisplayContext for Context {
 
     fn init(window: &Window) -> Self
@@ -153,13 +169,7 @@ impl DisplayContext for Context {
 
             let values = [
                 (xcb::CW_BACK_PIXEL, screen.black_pixel()),
-                (xcb::CW_EVENT_MASK,
-                 xcb::EVENT_MASK_EXPOSURE |
-                 xcb::EVENT_MASK_KEY_PRESS |
-                 xcb::EVENT_MASK_BUTTON_PRESS |
-                 xcb::EVENT_MASK_BUTTON_RELEASE |
-                 xcb::EVENT_MASK_POINTER_MOTION |
-                 xcb::EVENT_MASK_BUTTON_MOTION)
+                (xcb::CW_EVENT_MASK, EVENT_MASK)
             ];
 
             let (x, y) = window.origin();
@@ -271,8 +281,28 @@ impl DisplayContext for Context {
                     xcb::MOTION_NOTIFY => {
                         Event::Input(
                             InputEvent::Mouse(
-                                MouseEvent::Hover(
-                                    event::xcb::mouse_hover(&e)
+                                MouseEvent::Move(
+                                    event::xcb::mouse_move(&e)
+                                )
+                            )
+                        )
+                    },
+
+                    xcb::ENTER_NOTIFY => {
+                        Event::Input(
+                            InputEvent::Mouse(
+                                MouseEvent::Enter(
+                                    event::xcb::mouse_enter(&e)
+                                )
+                            )
+                        )
+                    },
+
+                    xcb::LEAVE_NOTIFY => {
+                        Event::Input(
+                            InputEvent::Mouse(
+                                MouseEvent::Leave(
+                                    event::xcb::mouse_leave(&e)
                                 )
                             )
                         )

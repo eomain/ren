@@ -58,8 +58,16 @@ fn main()
                                 println!("button-release: x: {}, y: {}", pos.0, pos.1)
                             },
 
-                            ren::MouseEvent::Hover(pos) => {
-                                println!("hover: x: {}, y: {}", pos.0, pos.1)
+                            ren::MouseEvent::Move(pos) => {
+                                println!("mouse-move: x: {}, y: {}", pos.0, pos.1)
+                            }
+
+                            ren::MouseEvent::Enter(pos) => {
+                                println!("mouse-enter: x: {}, y: {}", pos.0, pos.1)
+                            }
+
+                            ren::MouseEvent::Leave(pos) => {
+                                println!("mouse-leave: x: {}, y: {}", pos.0, pos.1)
                             }
 
                             _ => ()
