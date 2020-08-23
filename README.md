@@ -23,6 +23,11 @@ be either a request (e.g. map the window) or a response (e.g. a key-press).
 ```rust
 extern crate ren;
 
+use ren::Message;
+use ren::WindowCommand::{
+    Title, Dimension, Map
+};
+
 fn main()
 {
     let title = format!("Ren - example {}", file!());
@@ -32,19 +37,13 @@ fn main()
     let token = connect.begin();
 
     // Request the window title
-    connect.send(&token, ren::Message::request(
-        ren::WindowCommand::Title(title)
-    ));
+    connect.send(&token, Message::request(Title(title)));
 
     // Request the window dimensions
-    connect.send(&token, ren::Message::request(
-        ren::WindowCommand::Dimension((640, 480))
-    ));
+    connect.send(&token, Message::request(Dimension((640, 480))));
 
     // Map the window
-    connect.send(&token, ren::Message::request(
-        ren::WindowCommand::Map
-    ));
+    connect.send(&token, Message::request(Map));
 
     loop {
         // Wait for an event
