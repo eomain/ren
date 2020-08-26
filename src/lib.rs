@@ -76,12 +76,19 @@ impl Session {
         }
     }
 
-    fn body(&mut self, body: &Body)
+    fn body(&mut self, body: &Body) -> Status
     {
         match body {
-            Body::Command(c) => self.command(c),
+            Body::Stat(s) => {
+                match self.window.stat(&self.context, *s) {
+                    Some(data) => return Ok(Message::response(data)),
+                    _ => ()
+                }
+            },
+            Body::Command(c) => { self.command(c); },
             _ => ()
         }
+        Ok(Message::empty())
     }
 
     fn handle(&mut self, message: &Message) -> Status
@@ -89,9 +96,8 @@ impl Session {
         use Type::*;
         match message.ty() {
             Request => self.body(&message.body()),
-            _ => return Err(Error::Type)
+            _ => Err(Error::Type)
         }
-        Ok(Message::empty())
     }
 
     fn run(&mut self, token: &Token) -> Status
@@ -195,7 +201,8 @@ pub(crate) struct Context {
     pub map: Option<fn(&Manager)>,
     pub unmap: Option<fn(&Manager)>,
     pub draw: Option<fn(&Manager, &render::Surface)>,
-    pub event: Option<fn(&Manager) -> Event>
+    pub event: Option<fn(&Manager) -> Event>,
+    pub stat: Option<fn(&Manager, stat: Stat) -> Option<Data>>
 }
 
 impl Context {
@@ -207,7 +214,8 @@ impl Context {
             map: None,
             unmap: None,
             draw: None,
-            event: None
+            event: None,
+            stat: None
         }
     }
 }

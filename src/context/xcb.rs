@@ -16,6 +16,12 @@ use crate::event::InputEvent;
 use crate::event::DisplayEvent;
 use crate::event::input::KeyEvent;
 use crate::event::input::MouseEvent;
+use crate::{
+    Stat,
+    Data,
+    XcbStat,
+    XcbData
+};
 
 pub(crate) fn init(context: &mut crate::Context)
 {
@@ -23,12 +29,13 @@ pub(crate) fn init(context: &mut crate::Context)
     context.unmap = Some(unmap);
     context.draw = Some(draw);
     context.event = Some(event);
+    context.stat = Some(stat);
 }
 
 fn map(manager: &Manager)
 {
     match manager.xcb() {
-        Some(display) => display.map(),
+        Some(context) => context.map(),
         _ => ()
     }
 }
@@ -36,7 +43,7 @@ fn map(manager: &Manager)
 fn unmap(manager: &Manager)
 {
     match manager.xcb() {
-        Some(display) => display.unmap(),
+        Some(context) => context.unmap(),
         _ => ()
     }
 }
@@ -44,9 +51,9 @@ fn unmap(manager: &Manager)
 fn draw(manager: &Manager, surface: &render::Surface)
 {
     match manager.xcb() {
-        Some(display) => {
-            display.draw(surface);
-            display.refresh();
+        Some(context) => {
+            context.draw(surface);
+            context.refresh();
         },
         _ => ()
     }
@@ -55,8 +62,16 @@ fn draw(manager: &Manager, surface: &render::Surface)
 fn event(manager: &Manager) -> Event
 {
     match manager.xcb() {
-        Some(display) => display.event(),
+        Some(context) => context.event(),
         _ => Event::None
+    }
+}
+
+fn stat(manager: &Manager, stat: Stat) -> Option<Data>
+{
+    match manager.xcb() {
+        Some(context) => context.stat(stat),
+        _ => None
     }
 }
 
@@ -311,6 +326,19 @@ impl DisplayContext for Context {
                     _ => Event::None
                 }
             }
+        }
+    }
+
+    fn stat(&self, status: Stat) -> Option<Data>
+    {
+        match status {
+            Stat::Xcb(status) => {
+                Some((match status {
+                    XcbStat::Connection => XcbData::Connection(self.connection.get_raw_conn()),
+                    XcbStat::Window => XcbData::Window(self.window)
+                }).into())
+            },
+            _ => None
         }
     }
 

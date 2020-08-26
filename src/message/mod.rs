@@ -4,6 +4,11 @@
 
 extern crate uuid;
 
+pub mod data;
+pub mod stat;
+
+use stat::Stat;
+use data::Data;
 use uuid::Uuid;
 use mirage::surface::Surface;
 use crate::event::Event;
@@ -28,6 +33,10 @@ pub enum Type {
 pub enum Body {
     /// Has no body
     None,
+    /// Status
+    Stat(Stat),
+    /// Status data
+    Data(Data),
     /// A command
     Command(Command),
     /// An event

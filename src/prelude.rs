@@ -18,6 +18,14 @@ pub use crate::{
         Type,
         Body,
         Command,
-        WindowCommand
+        WindowCommand,
+        data::{
+            Data,
+            XcbData
+        },
+        stat::{
+            Stat,
+            XcbStat
+        }
     }
 };

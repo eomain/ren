@@ -2,6 +2,8 @@
 pub mod xcb;
 
 use crate::{
+    Stat,
+    Data,
     Window,
     render::Surface,
     event::Event
@@ -16,6 +18,8 @@ pub(crate) trait DisplayContext {
     fn unmap(&self);
 
     fn event(&self) -> Event;
+
+    fn stat(&self, _: Stat) -> Option<Data>;
 
     fn draw(&self, _: &Surface);
 

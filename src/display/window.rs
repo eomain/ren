@@ -1,5 +1,7 @@
 
 use crate::{
+    Stat,
+    Data,
     Context,
     event::Event
 };
@@ -71,6 +73,15 @@ impl Window {
             event(&self.manager)
         } else {
             Event::None
+        }
+    }
+
+    pub fn stat(&self, context: &Context, status: Stat) -> Option<Data>
+    {
+        if let Some(stat) = context.stat {
+            stat(&self.manager, status)
+        } else {
+            None
         }
     }
 
