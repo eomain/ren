@@ -4,24 +4,20 @@ pub mod xcb;
 use crate::{
     Stat,
     Data,
-    Window,
+    WindowCommand,
     render::Surface,
     event::Event
 };
 
 pub(crate) trait DisplayContext {
 
-    fn init(_: &Window) -> Self;
-
-    fn map(&self);
-
-    fn unmap(&self);
+    fn init() -> Self;
 
     fn event(&self) -> Event;
 
     fn stat(&self, _: Stat) -> Option<Data>;
 
-    fn draw(&self, _: &Surface);
+    fn window(&self, _: &WindowCommand);
 
-    fn refresh(&self);
+    fn update(&self);
 }

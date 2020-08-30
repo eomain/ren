@@ -20,16 +20,14 @@ pub use prelude::*;
 use render::Surface;
 use display::{
     Manager,
-    ManagerName,
-    Window
+    ManagerName
 };
 use std::collections::HashMap;
 
 /// A single window session
 struct Session {
     batch: HashMap<Token, MessageQueue>,
-    context: Context,
-    window: Window
+    context: Context
 }
 
 impl Session {
@@ -41,36 +39,21 @@ impl Session {
 
         Self {
             batch: HashMap::new(),
-            context,
-            window: Window::default(name)
+            context
         }
     }
 
     fn poll(&self) -> Status
     {
-        let event = self.window.event(&self.context);
+        let event = self.context.event();
         Ok(Message::response(event))
     }
 
     fn command(&mut self, command: &Command)
     {
         match command {
-            Command::Window(w) => {
-                use WindowCommand::*;
-                match w {
-                    Title(title) => {
-                        self.window.title = title.into();
-                    },
-                    Dimension(dimension) => {
-                        self.window.dimension = *dimension;
-                    },
-                    Origin(origin) => {
-                        self.window.origin = *origin;
-                    },
-                    Map => self.window.map(&self.context),
-                    Unmap => self.window.unmap(&self.context),
-                    Draw(s) => self.window.draw(&self.context, &s)
-                }
+            Command::Window(command) => {
+                self.context.window(command);
             },
             _ => ()
         }
@@ -80,7 +63,7 @@ impl Session {
     {
         match body {
             Body::Stat(s) => {
-                match self.window.stat(&self.context, *s) {
+                match self.context.stat(*s) {
                     Some(data) => return Ok(Message::response(data)),
                     _ => ()
                 }
@@ -198,11 +181,10 @@ impl Connection {
 
 pub(crate) struct Context {
     name: ManagerName,
-    pub map: Option<fn(&Manager)>,
-    pub unmap: Option<fn(&Manager)>,
-    pub draw: Option<fn(&Manager, &render::Surface)>,
+    manager: Manager,
     pub event: Option<fn(&Manager) -> Event>,
-    pub stat: Option<fn(&Manager, stat: Stat) -> Option<Data>>
+    pub stat: Option<fn(&Manager, stat: Stat) -> Option<Data>>,
+    pub window: Box<Fn(&Manager, &WindowCommand)>
 }
 
 impl Context {
@@ -211,11 +193,10 @@ impl Context {
     {
         Self {
             name,
-            map: None,
-            unmap: None,
-            draw: None,
+            manager: Manager::None,
             event: None,
-            stat: None
+            stat: None,
+            window: Box::new(|_, _| {})
         }
     }
 }
@@ -225,11 +206,33 @@ impl Context {
     fn init(&mut self)
     {
         self.name().init(self);
+        self.manager = Manager::new(&self.name);
     }
 
     fn name(&self) -> ManagerName
     {
         self.name.clone()
+    }
+
+    fn event(&self) -> Event
+    {
+        match &self.event {
+            Some(event) => event(&self.manager),
+            _ => Event::None
+        }
+    }
+
+    fn stat(&self, status: Stat) -> Option<Data>
+    {
+        match &self.stat {
+            Some(stat) => stat(&self.manager, status),
+            _ => None
+        }
+    }
+
+    fn window(&self, command: &WindowCommand)
+    {
+        (self.window)(&self.manager, command);
     }
 }
 

@@ -87,8 +87,14 @@ pub enum WindowCommand {
     Map,
     /// Request to unmap window
     Unmap,
+    /// Request to stack the window above
+    StackAbove,
+    /// Request to stack the window below
+    StackBelow,
     /// Request to draw to window
-    Draw(Surface)
+    Draw(Surface),
+    /// Request to update the window
+    Update
 }
 
 impl From<WindowCommand> for Body {

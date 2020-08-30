@@ -1,9 +1,9 @@
 
 extern crate xcb;
 
-use crate::event::display::ExposeMap;
-use crate::event::input::KeyMap;
-use crate::display::window::Position;
+use super::display::ExposeMap;
+use super::input::KeyMap;
+use super::Position;
 
 pub fn expose(event: &xcb::GenericEvent) -> ExposeMap
 {
@@ -22,7 +22,7 @@ fn keymap(code: xcb::ffi::xcb_keycode_t) -> KeyMap
 {
     /* TODO */
     match code {
-        _ => KeyMap::UNKNOWN
+        _ => KeyMap::Unknown
     }
 }
 

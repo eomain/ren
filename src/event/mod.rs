@@ -17,11 +17,15 @@
 
 pub(crate) mod xcb;
 
+pub type Position = (u32, u32);
+
+pub type Dimension = (u32, u32);
+
 /// All events relating to the display
 pub mod display {
 
-    use crate::display::window::Position;
-    use crate::display::window::Dimension;
+    use super::Position;
+    use super::Dimension;
 
     /// A map of an area of the display
     /// that needs to be updated.
@@ -62,13 +66,13 @@ pub mod display {
 /// All events relating to user input
 pub mod input {
 
-    use crate::display::window::Position;
+    use super::Position;
 
 
     /// A mapping of KeyBoard events.
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub enum KeyMap {
-        ESC,
+        Esc,
         F1,
         F2,
         F3,
@@ -93,13 +97,13 @@ pub mod input {
         NUM_8,
         NUM_9,
 
-        SHIFT,
-        CAPS,
+        Shift,
+        Caps,
 
-        UP,
-        DOWN,
-        LEFT,
-        RIGHT,
+        Up,
+        Down,
+        Left,
+        Right,
 
         A,
         B,
@@ -129,7 +133,7 @@ pub mod input {
         Z,
 
         /// An unknown key
-        UNKNOWN
+        Unknown
     }
 
     /// The type of Key event.

@@ -2,7 +2,6 @@
 extern crate xcb;
 
 use super::DisplayContext;
-use crate::display::window::Window;
 use crate::display::Manager;
 use crate::render;
 use crate::render::Surface;
@@ -11,52 +10,24 @@ use crate::render::Point;
 use crate::render::Line;
 use crate::render::Rect;
 use crate::event;
-use crate::event::Event;
-use crate::event::InputEvent;
-use crate::event::DisplayEvent;
-use crate::event::input::KeyEvent;
-use crate::event::input::MouseEvent;
 use crate::{
     Stat,
     Data,
     XcbStat,
-    XcbData
+    XcbData,
+    WindowCommand,
+    Event,
+    InputEvent,
+    DisplayEvent,
+    KeyEvent,
+    MouseEvent
 };
 
 pub(crate) fn init(context: &mut crate::Context)
 {
-    context.map = Some(map);
-    context.unmap = Some(unmap);
-    context.draw = Some(draw);
     context.event = Some(event);
     context.stat = Some(stat);
-}
-
-fn map(manager: &Manager)
-{
-    match manager.xcb() {
-        Some(context) => context.map(),
-        _ => ()
-    }
-}
-
-fn unmap(manager: &Manager)
-{
-    match manager.xcb() {
-        Some(context) => context.unmap(),
-        _ => ()
-    }
-}
-
-fn draw(manager: &Manager, surface: &render::Surface)
-{
-    match manager.xcb() {
-        Some(context) => {
-            context.draw(surface);
-            context.refresh();
-        },
-        _ => ()
-    }
+    context.window = Box::new(window);
 }
 
 fn event(manager: &Manager) -> Event
@@ -75,10 +46,155 @@ fn stat(manager: &Manager, stat: Stat) -> Option<Data>
     }
 }
 
+fn window(manager: &Manager, command: &WindowCommand)
+{
+    match manager.xcb() {
+        Some(context) => context.window(command),
+        _ => ()
+    }
+}
+
 pub struct Context {
     connection: xcb::Connection,
     window: xcb::Window,
     foreground: u32
+}
+
+impl Context {
+
+    fn property(&self, mode: xcb::PropMode, prop: xcb::AtomEnum, ty: xcb::AtomEnum, data: &[u8])
+    {
+        xcb::change_property(
+            &self.connection,
+            mode as u8,
+            self.window,
+            prop,
+            ty,
+            8,
+            data
+        );
+    }
+
+    fn configure(&self, values: &[(u16, u32)])
+    {
+        xcb::configure_window(
+            &self.connection,
+            self.window,
+            values
+        );
+    }
+
+    fn window_title(&self, name: &str)
+    {
+        use xcb::*;
+        self.property(PROP_MODE_REPLACE, ATOM_WM_NAME, ATOM_STRING, name.as_bytes());
+    }
+
+    fn window_icon_title(&self, name: &str)
+    {
+        use xcb::*;
+        self.property(PROP_MODE_REPLACE, ATOM_WM_ICON_NAME, ATOM_STRING, name.as_bytes());
+    }
+
+    fn window_x(&self, x: u32)
+    {
+        self.configure(&[(
+            xcb::CONFIG_WINDOW_X as u16, x
+        )]);
+    }
+
+    fn window_y(&self, y: u32)
+    {
+        self.configure(&[(
+            xcb::CONFIG_WINDOW_Y as u16, y
+        )]);
+    }
+
+    fn window_move(&self, x: u32, y: u32)
+    {
+        self.configure(&[
+            (xcb::CONFIG_WINDOW_X as u16, x),
+            (xcb::CONFIG_WINDOW_Y as u16, y)
+        ]);
+    }
+
+    fn window_width(&self, width: u32)
+    {
+        self.configure(&[(
+            xcb::CONFIG_WINDOW_WIDTH as u16, width
+        )]);
+    }
+
+    fn window_height(&self, height: u32)
+    {
+        self.configure(&[(
+            xcb::CONFIG_WINDOW_HEIGHT as u16, height
+        )]);
+    }
+
+    fn window_resize(&self, width: u32, height: u32)
+    {
+        self.configure(&[
+            (xcb::CONFIG_WINDOW_WIDTH  as u16, width),
+            (xcb::CONFIG_WINDOW_HEIGHT as u16, height)
+        ]);
+    }
+
+    fn window_map(&self)
+    {
+        xcb::map_window(&self.connection, self.window);
+        self.update();
+    }
+
+    fn window_unmap(&self)
+    {
+        xcb::unmap_window(&self.connection, self.window);
+    }
+
+    fn window_stack_above(&self)
+    {
+        self.configure(&[(
+            xcb::CONFIG_WINDOW_STACK_MODE as u16, xcb::STACK_MODE_ABOVE
+        )]);
+    }
+
+    fn window_stack_below(&self)
+    {
+        self.configure(&[(
+            xcb::CONFIG_WINDOW_STACK_MODE as u16, xcb::STACK_MODE_BELOW
+        )]);
+    }
+
+    fn window_draw(&self, surface: &Surface)
+    {
+        surface.for_each(|object| {
+            use crate::render::Object;
+            use crate::render::Primitive;
+
+            match &*object {
+                Object::Primitive(p) => match p {
+                    Primitive::Text(ref f) => {
+                        font(self, f);
+                    },
+
+                    Primitive::Point(ref p) => {
+                        point(self, p);
+                    },
+
+                    Primitive::Line(ref l) => {
+                        line(self, l);
+                    },
+
+                    Primitive::Rect(ref r) => {
+                        rect(self, r);
+                    }
+                },
+                _ => ()
+            }
+        });
+        self.update();
+    }
+
 }
 
 const FONT_BASE: i16 = 10;
@@ -161,8 +277,9 @@ static EVENT_MASK: xcb::EventMask = (
 
 impl DisplayContext for Context {
 
-    fn init(window: &Window) -> Self
+    fn init() -> Self
     {
+        // TODO
         let (conn, num) = xcb::Connection::connect(None).unwrap();
 
         let (id, fore) = {
@@ -187,8 +304,8 @@ impl DisplayContext for Context {
                 (xcb::CW_EVENT_MASK, EVENT_MASK)
             ];
 
-            let (x, y) = window.origin();
-            let (width, height) = window.dimension();
+            let (x, y) = (0, 0);
+            let (width, height) = (1, 1);
             let border = 10;
 
             xcb::create_window(
@@ -206,16 +323,6 @@ impl DisplayContext for Context {
                 &values
             );
 
-            xcb::change_property(
-                &conn,
-                xcb::PROP_MODE_REPLACE as u8,
-                id,
-                xcb::ATOM_WM_NAME,
-                xcb::ATOM_STRING,
-                8,
-                window.title().as_bytes()
-            );
-
             (id, fore)
         };
 
@@ -224,17 +331,6 @@ impl DisplayContext for Context {
             window: id,
             foreground: fore
         }
-    }
-
-    fn map(&self)
-    {
-        xcb::map_window(&self.connection, self.window);
-        self.connection.flush();
-    }
-
-    fn unmap(&self)
-    {
-        xcb::unmap_window(&self.connection, self.window);
     }
 
     fn event(&self) -> Event
@@ -342,36 +438,23 @@ impl DisplayContext for Context {
         }
     }
 
-    fn draw(&self, surface: &Surface)
+    fn window(&self, command: &WindowCommand)
     {
-        surface.for_each(|object| {
-            use crate::render::Object;
-            use crate::render::Primitive;
-
-            match &*object {
-                Object::Primitive(p) => match p {
-                    Primitive::Text(ref f) => {
-                        font(self, f);
-                    },
-
-                    Primitive::Point(ref p) => {
-                        point(self, p);
-                    },
-
-                    Primitive::Line(ref l) => {
-                        line(self, l);
-                    },
-
-                    Primitive::Rect(ref r) => {
-                        rect(self, r);
-                    }
-                },
-                _ => ()
-            }
-        });
+        use WindowCommand::*;
+        match command {
+            Title(name) => self.window_title(name),
+            Dimension((w, h)) => self.window_resize(*w, *h),
+            Origin((x, y)) => self.window_move(*x, *y),
+            Map => self.window_map(),
+            Unmap => self.window_unmap(),
+            StackAbove => self.window_stack_above(),
+            StackBelow => self.window_stack_below(),
+            Draw(surface) => self.window_draw(surface),
+            Update => self.update()
+        }
     }
 
-    fn refresh(&self)
+    fn update(&self)
     {
         self.connection.flush();
     }
@@ -381,6 +464,6 @@ impl Drop for Context {
 
     fn drop(&mut self)
     {
-        self.unmap();
+        self.window_unmap();
     }
 }

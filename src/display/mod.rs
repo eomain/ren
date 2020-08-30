@@ -1,8 +1,4 @@
 
-pub mod window;
-
-pub(crate) use window::Window;
-
 use crate::{
     Context,
     context::{
@@ -41,12 +37,12 @@ pub(crate) enum Manager {
 }
 
 impl Manager {
-    pub fn new(name: &ManagerName, window: &crate::Window) -> Manager
+    pub fn new(name: &ManagerName) -> Manager
     {
         match *name {
             ManagerName::None => Manager::None,
             ManagerName::Xcb  => {
-                Manager::Xcb(xcb::Context::init(window))
+                Manager::Xcb(xcb::Context::init())
             }
         }
     }
