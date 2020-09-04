@@ -1,14 +1,23 @@
 
 use crate::{
-    Context,
     context::{
+        Context,
         DisplayContext,
         xcb
     }
 };
 
+pub fn init(context: &mut Context, name: ManagerName)
+{
+    match name {
+        ManagerName::Xcb =>
+            xcb::init(context),
+        _ => ()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) enum ManagerName {
+pub enum ManagerName {
     None,
     Xcb
 }
@@ -19,27 +28,17 @@ impl ManagerName {
         // TODO
         ManagerName::Xcb
     }
-
-    pub fn init(&self, context: &mut Context)
-    {
-        match self {
-            ManagerName::Xcb =>
-                xcb::init(context),
-
-            _ => ()
-        }
-    }
 }
 
-pub(crate) enum Manager {
+pub enum Manager {
     None,
     Xcb(xcb::Context)
 }
 
 impl Manager {
-    pub fn new(name: &ManagerName) -> Manager
+    pub fn new(name: ManagerName) -> Manager
     {
-        match *name {
+        match name {
             ManagerName::None => Manager::None,
             ManagerName::Xcb  => {
                 Manager::Xcb(xcb::Context::init())
@@ -54,6 +53,14 @@ impl Manager {
         match self {
             Manager::Xcb(context) => Some(context),
             _ => None
+        }
+    }
+
+    pub fn xcb_unwrap(&self) -> &xcb::Context
+    {
+        match self {
+            Manager::Xcb(context) => context,
+            _ => panic!("error: not an XCB context")
         }
     }
 }

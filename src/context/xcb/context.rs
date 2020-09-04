@@ -2,14 +2,6 @@
 extern crate xcb;
 
 use super::DisplayContext;
-use crate::display::Manager;
-use crate::render;
-use crate::render::Surface;
-use crate::render::Font;
-use crate::render::Point;
-use crate::render::Line;
-use crate::render::Rect;
-use crate::event;
 use crate::{
     Stat,
     Data,
@@ -17,47 +9,21 @@ use crate::{
     XcbData,
     WindowCommand,
     Event,
-    InputEvent,
     DisplayEvent,
     KeyEvent,
-    MouseEvent
+    MouseEvent,
+    display::Manager,
+    render,
+    render::{
+        Surface
+    },
+    event
 };
 
-pub(crate) fn init(context: &mut crate::Context)
-{
-    context.event = Some(event);
-    context.stat = Some(stat);
-    context.window = Box::new(window);
-}
-
-fn event(manager: &Manager) -> Event
-{
-    match manager.xcb() {
-        Some(context) => context.event(),
-        _ => Event::None
-    }
-}
-
-fn stat(manager: &Manager, stat: Stat) -> Option<Data>
-{
-    match manager.xcb() {
-        Some(context) => context.stat(stat),
-        _ => None
-    }
-}
-
-fn window(manager: &Manager, command: &WindowCommand)
-{
-    match manager.xcb() {
-        Some(context) => context.window(command),
-        _ => ()
-    }
-}
-
 pub struct Context {
-    connection: xcb::Connection,
-    window: xcb::Window,
-    foreground: u32
+    pub connection: xcb::Connection,
+    pub window: xcb::Window,
+    pub foreground: u32
 }
 
 impl Context {
@@ -174,19 +140,19 @@ impl Context {
             match &*object {
                 Object::Primitive(p) => match p {
                     Primitive::Text(ref f) => {
-                        font(self, f);
+                        super::render::font(self, f);
                     },
 
                     Primitive::Point(ref p) => {
-                        point(self, p);
+                        super::render::point(self, p);
                     },
 
                     Primitive::Line(ref l) => {
-                        line(self, l);
+                        super::render::line(self, l);
                     },
 
                     Primitive::Rect(ref r) => {
-                        rect(self, r);
+                        super::render::rect(self, r);
                     }
                 },
                 _ => ()
@@ -195,68 +161,6 @@ impl Context {
         self.update();
     }
 
-}
-
-const FONT_BASE: i16 = 10;
-
-fn font(context: &Context, font: &Font)
-{
-    let fid = context.connection.generate_id();
-    xcb::open_font(&context.connection, fid, "fixed");
-
-    let (x, y, text) = render::xcb::font(font);
-    xcb::image_text_8(
-        &context.connection,
-        context.window,
-        context.foreground,
-        x,
-        y + FONT_BASE,
-        text
-    );
-
-    xcb::close_font(&context.connection, fid);
-}
-
-fn point(context: &Context, point: &Point)
-{
-    let point = &[
-        render::xcb::point(point)
-    ];
-
-    xcb::poly_point(
-        &context.connection,
-        xcb::COORD_MODE_ORIGIN as u8,
-        context.window,
-        context.foreground,
-        point
-    );
-}
-
-fn line(context: &Context, line: &Line)
-{
-    let line = render::xcb::line(line);
-
-    xcb::poly_line(
-        &context.connection,
-        xcb::COORD_MODE_ORIGIN as u8,
-        context.window,
-        context.foreground,
-        &line
-    );
-}
-
-fn rect(context: &Context, rect: &Rect)
-{
-    let rect = &[
-        render::xcb::rectangle(rect)
-    ];
-
-    xcb::poly_rectangle(
-        &context.connection,
-        context.window,
-        context.foreground,
-        rect
-    );
 }
 
 static EVENT_MASK: xcb::EventMask = (
@@ -342,81 +246,35 @@ impl DisplayContext for Context {
 
                 match resp {
                     xcb::EXPOSE => {
-                        Event::Display(
-                            DisplayEvent::Expose(
-                                event::xcb::expose(&e)
-                            )
-                        )
+                        DisplayEvent::Expose(event::xcb::expose(&e)).into()
                     },
 
                     xcb::KEY_PRESS => {
-                        Event::Input(
-                            InputEvent::Key(
-                                KeyEvent::Press(
-                                    event::xcb::key_press(&e)
-                                )
-                            )
-                        )
+                        KeyEvent::Press(event::xcb::key_press(&e)).into()
                     },
 
                     xcb::KEY_RELEASE => {
-                        Event::Input(
-                            InputEvent::Key(
-                                KeyEvent::Release(
-                                    event::xcb::key_release(&e)
-                                )
-                            )
-                        )
+                        KeyEvent::Release(event::xcb::key_release(&e)).into()
                     },
 
                     xcb::BUTTON_PRESS => {
-                        Event::Input(
-                            InputEvent::Mouse(
-                                MouseEvent::Press(
-                                event::xcb::button_press(&e)
-                                )
-                            )
-                        )
+                        MouseEvent::Press(event::xcb::button_press(&e)).into()
                     },
 
                     xcb::BUTTON_RELEASE => {
-                        Event::Input(
-                            InputEvent::Mouse(
-                                MouseEvent::Release(
-                                    event::xcb::button_release(&e)
-                                )
-                            )
-                        )
+                        MouseEvent::Release(event::xcb::button_release(&e)).into()
                     },
 
                     xcb::MOTION_NOTIFY => {
-                        Event::Input(
-                            InputEvent::Mouse(
-                                MouseEvent::Move(
-                                    event::xcb::mouse_move(&e)
-                                )
-                            )
-                        )
+                        MouseEvent::Move(event::xcb::mouse_move(&e)).into()
                     },
 
                     xcb::ENTER_NOTIFY => {
-                        Event::Input(
-                            InputEvent::Mouse(
-                                MouseEvent::Enter(
-                                    event::xcb::mouse_enter(&e)
-                                )
-                            )
-                        )
+                        MouseEvent::Enter(event::xcb::mouse_enter(&e)).into()
                     },
 
                     xcb::LEAVE_NOTIFY => {
-                        Event::Input(
-                            InputEvent::Mouse(
-                                MouseEvent::Leave(
-                                    event::xcb::mouse_leave(&e)
-                                )
-                            )
-                        )
+                        MouseEvent::Leave(event::xcb::mouse_leave(&e)).into()
                     },
 
                     _ => Event::None
@@ -457,13 +315,5 @@ impl DisplayContext for Context {
     fn update(&self)
     {
         self.connection.flush();
-    }
-}
-
-impl Drop for Context {
-
-    fn drop(&mut self)
-    {
-        self.window_unmap();
     }
 }
