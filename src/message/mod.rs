@@ -10,7 +10,10 @@ pub mod stat;
 use stat::Stat;
 use data::Data;
 use uuid::Uuid;
-use mirage::surface::Surface;
+use crate::render::{
+    Image,
+    Surface
+};
 use crate::event::Event;
 
 /// The type of the `Message`.
@@ -93,6 +96,8 @@ pub enum WindowCommand {
     StackBelow,
     /// Request to draw to window
     Draw(Surface),
+    /// Request to draw image to window
+    Image(Image),
     /// Request to update the window
     Update
 }

@@ -15,6 +15,7 @@ use crate::{
     display::Manager,
     render,
     render::{
+        Image,
         Surface
     },
     event
@@ -27,6 +28,11 @@ pub struct Context {
 }
 
 impl Context {
+
+    pub fn id(&self) -> u32
+    {
+        self.connection.generate_id()
+    }
 
     fn property(&self, mode: xcb::PropMode, prop: xcb::AtomEnum, ty: xcb::AtomEnum, data: &[u8])
     {
@@ -159,6 +165,15 @@ impl Context {
             }
         });
         self.update();
+    }
+
+    fn window_image(&self, img: &Image)
+    {
+        let (x, y) = (img.point.x as i16, img.point.y as i16);
+        let (w, h) = (img.width as u16, img.height as u16);
+        let image = super::render::Image::from_window(self, w, h);
+        image.write(self, 0, 0, w, h, &img.data);
+        image.draw_window(self, (0, 0), (x, y), w, h);
     }
 
 }
@@ -308,6 +323,7 @@ impl DisplayContext for Context {
             StackAbove => self.window_stack_above(),
             StackBelow => self.window_stack_below(),
             Draw(surface) => self.window_draw(surface),
+            Image(image) => self.window_image(image),
             Update => self.update()
         }
     }
