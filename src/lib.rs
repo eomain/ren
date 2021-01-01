@@ -6,7 +6,7 @@
 extern crate mirage;
 
 mod context;
-mod display;
+mod system;
 mod session;
 mod connection;
 

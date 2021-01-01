@@ -9,7 +9,7 @@ use crate::{
     Type,
     MessageQueue,
     context::Context,
-    display::SystemType
+    system::SystemType
 };
 use std::pin::Pin;
 use std::task::Poll;

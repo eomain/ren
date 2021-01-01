@@ -8,7 +8,7 @@ use crate::{
     WindowCommand,
     render::Surface,
     event::Event,
-    display::{
+    system::{
         init,
         System,
         SystemType
