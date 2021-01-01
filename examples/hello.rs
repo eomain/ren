@@ -3,6 +3,7 @@ extern crate mirage;
 
 use mirage::convert::svg;
 use ren::render::Surface;
+use ren::WindowCommand::*;
 
 fn surface() -> Surface
 {
@@ -22,19 +23,14 @@ fn main()
     let token = connect.begin();
 
     // Request the window title
-    connect.send(&token, ren::Message::request(
-        ren::WindowCommand::Title(title)
-    ));
+    connect.request(&token, Title(title));
 
     // Request the window dimensions
-    connect.send(&token, ren::Message::request(
-        ren::WindowCommand::Dimension((640, 480))
-    ));
+    connect.request(&token, Dimension((640, 480)));
 
     // Map the window
-    connect.send(&token, ren::Message::request(
-        ren::WindowCommand::Map
-    ));
+    connect.request(&token, Map);
+    connect.request(&token, Update);
 
     loop {
         // Wait for an event
@@ -49,9 +45,8 @@ fn main()
                 // Expose response
                 if let ren::DisplayEvent::Expose(_) = event {
                     // Draw on the window
-                    connect.send(&token, ren::Message::request(
-                        ren::WindowCommand::Draw(surface())
-                    ));
+                    connect.request(&token, Draw(surface()));
+                    connect.request(&token, Update);
                 }
             },
             _ => ()

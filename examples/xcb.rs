@@ -10,7 +10,7 @@ use ren::{
     Body,
     Message,
     WindowCommand::{
-        Title, Dimension, Map
+        Title, Dimension, Map, Update
     },
 };
 
@@ -23,13 +23,14 @@ fn main()
     let token = connect.begin();
 
     // Request the window title
-    connect.send(&token, Message::request(Title(title)));
+    connect.request(&token, Title(title));
 
     // Request the window dimensions
-    connect.send(&token, Message::request(Dimension((320, 240))));
+    connect.request(&token, Dimension((640, 480)));
 
     // Map the window
-    connect.send(&token, Message::request(Map));
+    connect.request(&token, Map);
+    connect.request(&token, Update);
 
     // Get the window ID
     let id = match connect.send(&token, Message::request(Window)).unwrap().body() {

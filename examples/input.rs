@@ -1,5 +1,7 @@
 extern crate ren;
 
+use ren::WindowCommand::*;
+
 fn main()
 {
     let title = format!("Ren - example {}", file!());
@@ -9,19 +11,14 @@ fn main()
     let token = connect.begin();
 
     // Request the window title
-    connect.send(&token, ren::Message::request(
-        ren::WindowCommand::Title(title)
-    ));
+    connect.request(&token, Title(title));
 
     // Request the window dimensions
-    connect.send(&token, ren::Message::request(
-        ren::WindowCommand::Dimension((640, 480))
-    ));
+    connect.request(&token, Dimension((640, 480)));
 
     // Map the window
-    connect.send(&token, ren::Message::request(
-        ren::WindowCommand::Map
-    ));
+    connect.request(&token, Map);
+    connect.request(&token, Update);
 
     loop {
         // Wait for an event

@@ -1,65 +1,53 @@
 
-use crate::{
-    context::{
-        Context,
-        DisplayContext,
-        xcb
-    }
-};
+use crate::context::{xcb, Context, SystemContext};
 
-pub fn init(context: &mut Context, name: ManagerName)
+pub fn init(context: &mut Context, name: SystemType)
 {
     match name {
-        ManagerName::Xcb =>
+        SystemType::Xcb =>
             xcb::init(context),
         _ => ()
     }
 }
 
+/// The kind of windowing system
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ManagerName {
-    None,
+pub enum SystemType {
     Xcb
 }
 
-impl ManagerName {
-    pub fn default() -> Self
-    {
-        // TODO
-        ManagerName::Xcb
+impl Default for SystemType {
+    #[cfg(target_family = "unix")]
+    fn default() -> Self {
+        SystemType::Xcb
     }
 }
 
-pub enum Manager {
-    None,
+pub enum System {
     Xcb(xcb::Context)
 }
 
-impl Manager {
-    pub fn new(name: ManagerName) -> Manager
+impl System {
+    pub fn new(sys: SystemType) -> Self
     {
-        match name {
-            ManagerName::None => Manager::None,
-            ManagerName::Xcb  => {
-                Manager::Xcb(xcb::Context::init())
+        match sys {
+            SystemType::Xcb  => {
+                System::Xcb(xcb::Context::init())
             }
         }
     }
-}
 
-impl Manager {
     pub fn xcb(&self) -> Option<&xcb::Context>
     {
         match self {
-            Manager::Xcb(context) => Some(context),
-            _ => None
+            System::Xcb(context) => Some(context)
         }
     }
 
     pub fn xcb_unwrap(&self) -> &xcb::Context
     {
         match self {
-            Manager::Xcb(context) => context,
+            System::Xcb(context) => context,
             _ => panic!("error: not an XCB context")
         }
     }

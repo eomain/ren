@@ -70,7 +70,7 @@ pub enum KeyMap {
     Z,
 
     /// An unknown key
-    Unknown
+    Unknown(u16)
 }
 
 /// The type of Key event.

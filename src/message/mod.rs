@@ -114,6 +114,7 @@ impl From<WindowCommand> for Body {
 pub enum Error {
     Type,
     Token,
+    NoEvent,
     Custom(String)
 }
 
@@ -124,6 +125,7 @@ impl From<&Error> for String {
         match e {
             Type => "specified unexpected message type".into(),
             Token => "specified undefined token".into(),
+            NoEvent => "no event".into(),
             Custom(s) => s.into()
         }
     }

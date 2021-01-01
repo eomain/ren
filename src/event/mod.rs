@@ -15,23 +15,26 @@
 //! is generated from devices such as a mouse
 //! and keyboard.
 
-pub(crate) mod xcb;
-
-pub type Position = (u32, u32);
-
-pub type Dimension = (u32, u32);
-
 /// All events relating to the display
 pub mod display;
 
 /// All events relating to user input
 pub mod input;
 
+pub(crate) mod xcb;
+
+pub type Coord = i16;
+pub type Size = u16;
+
+pub type Position = (Coord, Coord);
+
+pub type Dimension = (Size, Size);
+
 /// A display event
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum DisplayEvent {
-    /// An area of the display to be updated.
-    Expose(display::ExposeMap)
+    /// An area of the window that needs to be updated.
+    Expose(display::Map)
 }
 
 impl From<DisplayEvent> for Event {
@@ -57,22 +60,22 @@ impl From<InputEvent> for Event {
     }
 }
 
-/// A ren event
+/// An `Event`
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Event {
-    /// No event has occured.
-    None,
-    /// An event signalling termination of the current display.
+    /// An unknown event occurred. May contain an event code
+    Unknown(Option<u16>),
+    /// An event signalling termination of the current application window.
     Terminate,
     /// A display type event
     Display(DisplayEvent),
-    /// An input event
+    /// An input event from a user
     Input(InputEvent)
 }
 
 impl Event {
 
-    /// if the event is a DisplayEvent
+    /// If the event is a `DisplayEvent`
     pub fn is_display(&self) -> bool
     {
         if let Event::Display(_) = self {
@@ -82,7 +85,7 @@ impl Event {
         }
     }
 
-    /// if the event is an InputEvent
+    /// If the event is an `InputEvent`
     pub fn is_input(&self) -> bool
     {
         if let Event::Input(_) = self {
@@ -92,16 +95,21 @@ impl Event {
         }
     }
 
-    /// returns Some, if a KeyEvent otherwise None
-    pub fn key_event(&self) -> Option<&input::KeyEvent>
+    /// Returns `Some` if a `KeyEvent` otherwise `None`
+    pub fn key(&self) -> Option<&input::KeyEvent>
     {
-        if let Event::Input(event) = self {
-            if let InputEvent::Key(event) = event {
-                return Some(event)
-            }
+        match self {
+            Event::Input(InputEvent::Key(event)) => Some(event),
+            _ => None
         }
-
-        None
     }
 
+    /// Returns `Some` if a `MouseEvent` otherwise `None`
+    pub fn mouse(&self) -> Option<&input::MouseEvent>
+    {
+        match self {
+            Event::Input(InputEvent::Mouse(event)) => Some(event),
+            _ => None
+        }
+    }
 }

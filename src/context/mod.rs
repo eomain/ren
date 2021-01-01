@@ -1,6 +1,7 @@
 
 pub mod xcb;
 
+use std::sync::Arc;
 use crate::{
     Stat,
     Data,
@@ -9,62 +10,60 @@ use crate::{
     event::Event,
     display::{
         init,
-        Manager,
-        ManagerName
+        System,
+        SystemType
     }
 };
 
 pub struct Context {
-    pub name: ManagerName,
-    manager: Manager,
-    pub event: Box<Fn(&Manager) -> Event>,
-    pub stat: Box<Fn(&Manager, Stat) -> Option<Data>>,
-    pub window: Box<Fn(&Manager, &WindowCommand)>
+    pub ty: SystemType,
+    system: System,
+    pub event: Box<dyn Fn(&System) -> Option<Event> + Send + Sync>,
+    pub poll: Box<dyn Fn(&System) -> Option<Event> + Send + Sync>,
+    pub stat: Box<dyn Fn(&System, Stat) -> Option<Data> + Send + Sync>,
+    pub window: Box<dyn Fn(&System, &WindowCommand) + Send + Sync>
 }
 
 impl Context {
-
-    pub fn new(name: ManagerName) -> Self
-    {
+    pub fn new(ty: SystemType) -> Self {
         Self {
-            name,
-            manager: Manager::new(name),
-            event: Box::new(|_| Event::None),
+            ty,
+            system: System::new(ty),
+            event: Box::new(|_| None),
+            poll: Box::new(|_| None),
             stat: Box::new(|_, _| None),
             window: Box::new(|_, _| {})
         }
     }
 
-}
-
-impl Context {
-
-    pub fn init(&mut self)
-    {
-        init(self, self.name);
+    pub fn init(&mut self) {
+        init(self, self.ty);
     }
 
-    pub fn event(&self) -> Event
-    {
-        (self.event)(&self.manager)
+    pub fn event(&self) -> Option<Event> {
+        (self.event)(&self.system)
     }
 
-    pub fn stat(&self, status: Stat) -> Option<Data>
-    {
-        (self.stat)(&self.manager, status)
+    pub fn poll(&self) -> Option<Event> {
+        (self.poll)(&self.system)
     }
 
-    pub fn window(&self, command: &WindowCommand)
-    {
-        (self.window)(&self.manager, command);
+    pub fn stat(&self, status: Stat) -> Option<Data> {
+        (self.stat)(&self.system, status)
+    }
+
+    pub fn window(&self, command: &WindowCommand) {
+        (self.window)(&self.system, command);
     }
 }
 
-pub(crate) trait DisplayContext {
+pub trait SystemContext {
 
     fn init() -> Self;
 
-    fn event(&self) -> Event;
+    fn event(&self) -> Option<Event>;
+
+    fn poll(&self) -> Option<Event>;
 
     fn stat(&self, _: Stat) -> Option<Data>;
 

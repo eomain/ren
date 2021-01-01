@@ -26,6 +26,9 @@ pub enum XcbData {
     Window(xcb::Window)
 }
 
+unsafe impl Send for XcbData {}
+unsafe impl Sync for XcbData {}
+
 impl From<XcbData> for Data {
     fn from(data: XcbData) -> Self
     {

@@ -1,0 +1,7 @@
+[package]
+name = "async-rt"
+version = "0.1.0"
+
+[dependencies.ren]
+version = "0.1"
+features = ["async-rt"]

@@ -1,7 +1,6 @@
 
 extern crate xcb;
 
-use super::DisplayContext;
 use crate::{
     Stat,
     Data,
@@ -12,7 +11,6 @@ use crate::{
     DisplayEvent,
     KeyEvent,
     MouseEvent,
-    display::Manager,
     render,
     render::{
         Image,
@@ -24,8 +22,12 @@ use crate::{
 pub struct Context {
     pub connection: xcb::Connection,
     pub window: xcb::Window,
-    pub foreground: u32
+    pub foreground: u32,
+    delete: Option<xcb::Atom>
 }
+
+unsafe impl Send for Context {}
+unsafe impl Sync for Context {}
 
 impl Context {
 
@@ -34,7 +36,7 @@ impl Context {
         self.connection.generate_id()
     }
 
-    fn property(&self, mode: xcb::PropMode, prop: xcb::AtomEnum, ty: xcb::AtomEnum, data: &[u8])
+    fn property<T>(&self, mode: xcb::PropMode, prop: xcb::AtomEnum, ty: xcb::AtomEnum, data: &[T])
     {
         xcb::change_property(
             &self.connection,
@@ -115,7 +117,6 @@ impl Context {
     fn window_map(&self)
     {
         xcb::map_window(&self.connection, self.window);
-        self.update();
     }
 
     fn window_unmap(&self)
@@ -164,7 +165,6 @@ impl Context {
                 _ => ()
             }
         });
-        self.update();
     }
 
     fn window_image(&self, img: &Image)
@@ -176,6 +176,66 @@ impl Context {
         image.draw_window(self, (0, 0), (x, y), w, h);
     }
 
+    fn window_event(&self, event: Option<xcb::base::GenericEvent>) -> Option<Event>
+    {
+        if event.is_none() {
+            if let Err(_) = self.connection.has_error() {
+                return Some(Event::Terminate);
+            }
+        }
+
+        event.map(|e| {
+            let response = event_type(&e);
+
+            match response {
+                xcb::EXPOSE => {
+                    DisplayEvent::Expose(event::xcb::expose(&e)).into()
+                },
+
+                xcb::KEY_PRESS => {
+                    KeyEvent::Press(event::xcb::key_press(&e)).into()
+                },
+
+                xcb::KEY_RELEASE => {
+                    KeyEvent::Release(event::xcb::key_release(&e)).into()
+                },
+
+                xcb::BUTTON_PRESS => {
+                    MouseEvent::Press(event::xcb::button_press(&e)).into()
+                },
+
+                xcb::BUTTON_RELEASE => {
+                    MouseEvent::Release(event::xcb::button_release(&e)).into()
+                },
+
+                xcb::MOTION_NOTIFY => {
+                    MouseEvent::Move(event::xcb::mouse_move(&e)).into()
+                },
+
+                xcb::ENTER_NOTIFY => {
+                    MouseEvent::Enter(event::xcb::mouse_enter(&e)).into()
+                },
+
+                xcb::LEAVE_NOTIFY => {
+                    MouseEvent::Leave(event::xcb::mouse_leave(&e)).into()
+                },
+
+                xcb::CLIENT_MESSAGE => {
+                    let event = unsafe { xcb::cast_event::<xcb::ClientMessageEvent>(&e) };
+                    if event.type_() == 32 {
+                        if let Some(del) = self.delete {
+                            if del == event.data().data32()[0] {
+                                return Event::Terminate;
+                            }
+                        }
+                    }
+                    Event::Unknown(Some(response.into()))
+                },
+
+                _ => Event::Unknown(Some(response.into()))
+            }
+        })
+    }
 }
 
 static EVENT_MASK: xcb::EventMask = (
@@ -194,108 +254,91 @@ static EVENT_MASK: xcb::EventMask = (
     xcb::EVENT_MASK_LEAVE_WINDOW
 );
 
-impl DisplayContext for Context {
+#[inline]
+fn event_type(e: &xcb::base::GenericEvent) -> u8
+{
+    e.response_type() & !0x080
+}
+
+fn window(conn: &xcb::Connection, screen: &xcb::Screen) -> u32
+{
+    let id = conn.generate_id();
+
+    let values = [
+        (xcb::CW_BACK_PIXEL, screen.black_pixel()),
+        (xcb::CW_EVENT_MASK, EVENT_MASK)
+    ];
+
+    let (x, y) = (0, 0);
+    let (width, height) = (1, 1);
+    let border = 10;
+
+    xcb::create_window(
+        conn,
+        xcb::COPY_FROM_PARENT as u8,
+        id,
+        screen.root(),
+        x as i16,
+        y as i16,
+        width as u16,
+        height as u16,
+        border,
+        xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
+        screen.root_visual(),
+        &values
+    );
+    id
+}
+
+#[inline]
+fn gc(conn: &xcb::Connection, screen: &xcb::Screen) -> u32
+{
+    let id = conn.generate_id();
+    xcb::create_gc(
+        conn, id, screen.root(), &[
+            (xcb::GC_FOREGROUND,
+             screen.white_pixel()),
+            (xcb::GC_GRAPHICS_EXPOSURES,
+             0)
+        ]
+    );
+    id
+}
+
+impl super::SystemContext for Context {
 
     fn init() -> Self
     {
         // TODO
-        let (conn, num) = xcb::Connection::connect(None).unwrap();
+        let (connect, num) = xcb::Connection::connect(None).unwrap();
+        let setup = connect.get_setup();
+        let screen = setup.roots().nth(num as usize).unwrap();
+        let window = window(&connect, &screen);
+        let foreground = gc(&connect, &screen);
 
-        let (id, fore) = {
-            let setup = conn.get_setup();
-            let screen = setup.roots().nth(num as usize).unwrap();
-
-            let fore = conn.generate_id();
-
-            xcb::create_gc(
-                &conn, fore, screen.root(), &[
-                    (xcb::GC_FOREGROUND,
-                     screen.white_pixel()),
-                    (xcb::GC_GRAPHICS_EXPOSURES,
-                     0)
-                ]
-            );
-
-            let id = conn.generate_id();
-
-            let values = [
-                (xcb::CW_BACK_PIXEL, screen.black_pixel()),
-                (xcb::CW_EVENT_MASK, EVENT_MASK)
-            ];
-
-            let (x, y) = (0, 0);
-            let (width, height) = (1, 1);
-            let border = 10;
-
-            xcb::create_window(
-                &conn,
-                xcb::COPY_FROM_PARENT as u8,
-                id,
-                screen.root(),
-                x as i16,
-                y as i16,
-                width as u16,
-                height as u16,
-                border,
-                xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
-                screen.root_visual(),
-                &values
-            );
-
-            (id, fore)
-        };
+        let cookie = xcb::intern_atom(&connect, true, "WM_PROTOCOLS");
+        cookie.get_reply();
+        let cookie = xcb::intern_atom(&connect, false, "WM_DELETE_WINDOW");
+        let delete = cookie.get_reply().ok().map(|r| r.atom());
 
         Self {
-            connection: conn,
-            window: id,
-            foreground: fore
+            connection: connect,
+            window,
+            foreground,
+            delete
         }
     }
 
-    fn event(&self) -> Event
+    fn event(&self) -> Option<Event>
     {
-        match self.connection.wait_for_event() {
-            None => Event::Terminate,
-            Some(e) => {
-                let resp = e.response_type() & !0x080;
+        let event = self.connection.wait_for_event();
+        self.window_event(event)
+    }
 
-                match resp {
-                    xcb::EXPOSE => {
-                        DisplayEvent::Expose(event::xcb::expose(&e)).into()
-                    },
-
-                    xcb::KEY_PRESS => {
-                        KeyEvent::Press(event::xcb::key_press(&e)).into()
-                    },
-
-                    xcb::KEY_RELEASE => {
-                        KeyEvent::Release(event::xcb::key_release(&e)).into()
-                    },
-
-                    xcb::BUTTON_PRESS => {
-                        MouseEvent::Press(event::xcb::button_press(&e)).into()
-                    },
-
-                    xcb::BUTTON_RELEASE => {
-                        MouseEvent::Release(event::xcb::button_release(&e)).into()
-                    },
-
-                    xcb::MOTION_NOTIFY => {
-                        MouseEvent::Move(event::xcb::mouse_move(&e)).into()
-                    },
-
-                    xcb::ENTER_NOTIFY => {
-                        MouseEvent::Enter(event::xcb::mouse_enter(&e)).into()
-                    },
-
-                    xcb::LEAVE_NOTIFY => {
-                        MouseEvent::Leave(event::xcb::mouse_leave(&e)).into()
-                    },
-
-                    _ => Event::None
-                }
-            }
-        }
+    fn poll(&self) -> Option<Event>
+    {
+        let event = self.connection.poll_for_event();
+        self.window_event(event)
     }
 
     fn stat(&self, status: Stat) -> Option<Data>

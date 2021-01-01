@@ -1,5 +1,3 @@
-//! # Ren
-
 //! `Ren` is library that provides basic access
 //! to the client windowing system. There is
 //! support for rendering primative drawing operations to
@@ -19,3 +17,6 @@ pub mod message;
 mod prelude;
 pub use prelude::*;
 pub use connection::Connection;
+
+#[cfg(feature = "async-rt")]
+pub use async_std;
