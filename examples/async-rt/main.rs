@@ -1,15 +1,12 @@
 extern crate ren;
-extern crate mirage;
 
-use mirage::convert::svg;
-use ren::render::Surface;
 use ren::WindowCommand::*;
 use ren::async_std::task;
 
 fn main()
 {
     task::block_on(async {
-        let title = format!("Ren - example {}", file!());
+        let title = format!("Ren - {}", file!());
 
         // Open a connection
         let mut connect = ren::Connection::new();

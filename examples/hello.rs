@@ -9,6 +9,7 @@ fn surface() -> Surface
 {
     svg::into::string(r#"
         <svg>
+            <rect width="640" height="480" />
             <text x="280" y="150">hello world</text>
         </svg>
     "#).unwrap()
@@ -16,7 +17,7 @@ fn surface() -> Surface
 
 fn main()
 {
-    let title = format!("Ren - example {}", file!());
+    let title = format!("Ren - {}", file!());
 
     // Open a connection
     let mut connect = ren::Connection::new();

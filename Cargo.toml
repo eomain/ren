@@ -1,6 +1,6 @@
 [package]
 name = "ren"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["eomain"]
 description = "Communicate with the windowing system using a simple messaging interface"
 keywords = ["ui", "gui", "windowing-system", "async", "graphics"]
@@ -10,6 +10,7 @@ edition = "2018"
 [features]
 default = []
 async-rt = ["async-std"]
+cairo = ["cairo-rs"]
 
 [dependencies.mirage]
 git = "https://github.com/eomain/mirage"
@@ -24,6 +25,11 @@ features = ["v4"]
 
 [dependencies.async-std]
 version = "1.8.0"
+optional = true
+
+[dependencies.cairo-rs]
+version = "0.9.1"
+features = ["xcb", "png", "svg"]
 optional = true
 
 [profile.dev]

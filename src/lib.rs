@@ -11,6 +11,7 @@ mod session;
 mod connection;
 
 pub mod event;
+pub mod graphics;
 pub mod render;
 pub mod message;
 

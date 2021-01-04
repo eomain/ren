@@ -1,22 +1,15 @@
+
 extern crate ren;
 
 use ren::{
-    XcbStat::{
-        Connection,
-        Window
-    },
-    Data,
-    XcbData,
-    Body,
-    Message,
-    WindowCommand::{
-        Title, Dimension, Map, Update
-    },
+    XcbStat::{Connection, Window, VisualType},
+    Data, XcbData, Body, Message,
+    WindowCommand::{Title, Dimension, Map, Update},
 };
 
 fn main()
 {
-    let title = format!("Ren - example {}", file!());
+    let title = format!("Ren - {}", file!());
 
     // Open a connection
     let mut connect = ren::Connection::new();
@@ -33,19 +26,25 @@ fn main()
     connect.request(&token, Update);
 
     // Get the window ID
-    let id = match connect.send(&token, Message::request(Window)).unwrap().body() {
+    let id = match connect.request(&token, Window).unwrap().body() {
         Body::Data(Data::Xcb(XcbData::Window(id))) => *id,
         _ => unreachable!()
     };
 
     // Get the connection
-    let conn = match connect.send(&token, Message::request(Connection)).unwrap().body() {
+    let conn = match connect.request(&token, Connection).unwrap().body() {
         Body::Data(Data::Xcb(XcbData::Connection(conn))) => *conn,
         _ => unreachable!()
     };
 
-    println!("XCB ID: {:?}", id);
-    println!("XCB connection: {:?}", conn);
+    let mut visual = match connect.request(&token, VisualType).unwrap().body() {
+        Body::Data(Data::Xcb(XcbData::VisualType(v))) => v.unwrap(),
+        _ => unreachable!()
+    };
+
+    println!("XCB Id: {:?}", id);
+    println!("XCB Connection: {:?}", conn);
+    println!("XCB Visual Id: {}", visual.visual_id());
 
     loop {
         // Wait for an event

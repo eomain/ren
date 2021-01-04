@@ -21,7 +21,9 @@ pub enum XcbStat {
     /// Get the raw connection
     Connection,
     /// Get the window ID
-    Window
+    Window,
+    /// Get the Visualtype
+    VisualType
 }
 
 impl From<XcbStat> for Stat {

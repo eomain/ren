@@ -25,7 +25,7 @@ pub fn font(context: &Context, font: &Font)
     xcb::image_text_8(
         &context.connection,
         context.window,
-        context.foreground,
+        context.white,
         x,
         y + FONT_BASE,
         text
@@ -44,7 +44,7 @@ pub fn point(context: &Context, point: &Point)
         &context.connection,
         xcb::COORD_MODE_ORIGIN as u8,
         context.window,
-        context.foreground,
+        context.black,
         point
     );
 }
@@ -57,7 +57,7 @@ pub fn line(context: &Context, line: &Line)
         &context.connection,
         xcb::COORD_MODE_ORIGIN as u8,
         context.window,
-        context.foreground,
+        context.black,
         &line
     );
 }
@@ -68,10 +68,10 @@ pub fn rect(context: &Context, rect: &Rect)
         render::xcb::rectangle(rect)
     ];
 
-    xcb::poly_rectangle(
+    xcb::poly_fill_rectangle(
         &context.connection,
         context.window,
-        context.foreground,
+        context.black,
         rect
     );
 }
@@ -110,7 +110,7 @@ impl Image {
             &context.connection,
             xcb::IMAGE_FORMAT_XY_PIXMAP as u8,
             self.pixmap,
-            context.foreground,
+            context.black,
             width, height,
             x, y,
             0,
@@ -126,7 +126,7 @@ impl Image {
             &context.connection,
             self.pixmap,
             draw,
-            context.foreground,
+            context.black,
             src.0, src.1,
             dest.0, dest.1,
             width, height

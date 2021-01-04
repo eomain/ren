@@ -22,7 +22,9 @@ use crate::{
 pub struct Context {
     pub connection: xcb::Connection,
     pub window: xcb::Window,
-    pub foreground: u32,
+    pub black: u32,
+    pub white: u32,
+    visual: Option<xcb::Visualtype>,
     delete: Option<xcb::Atom>
 }
 
@@ -265,7 +267,6 @@ fn window(conn: &xcb::Connection, screen: &xcb::Screen) -> u32
     let id = conn.generate_id();
 
     let values = [
-        (xcb::CW_BACK_PIXEL, screen.black_pixel()),
         (xcb::CW_EVENT_MASK, EVENT_MASK)
     ];
 
@@ -291,13 +292,13 @@ fn window(conn: &xcb::Connection, screen: &xcb::Screen) -> u32
 }
 
 #[inline]
-fn gc(conn: &xcb::Connection, screen: &xcb::Screen) -> u32
+fn gc(conn: &xcb::Connection, window: xcb::Window, color: u32) -> u32
 {
     let id = conn.generate_id();
     xcb::create_gc(
-        conn, id, screen.root(), &[
+        conn, id, window, &[
             (xcb::GC_FOREGROUND,
-             screen.white_pixel()),
+             color),
             (xcb::GC_GRAPHICS_EXPOSURES,
              0)
         ]
@@ -313,8 +314,27 @@ impl super::SystemContext for Context {
         let (connect, num) = xcb::Connection::connect(None).unwrap();
         let setup = connect.get_setup();
         let screen = setup.roots().nth(num as usize).unwrap();
+        let depths = screen.allowed_depths();
+        let mut depth = None;
+        for d in depths {
+            if d.depth() == 24 {
+                depth = Some(d);
+            }
+        }
+        let visuals = depth.map(|d| d.visuals());
+        let mut visual = None;
+        if let Some(visuals) = visuals {
+            for v in visuals {
+                if v.class() as u32 == xcb::VISUAL_CLASS_TRUE_COLOR {
+                    visual = Some(v);
+                    break;
+                }
+            }
+        }
         let window = window(&connect, &screen);
-        let foreground = gc(&connect, &screen);
+        let root = screen.root();
+        let black = gc(&connect, root, screen.black_pixel());
+        let white = gc(&connect, root, screen.white_pixel());
 
         let cookie = xcb::intern_atom(&connect, true, "WM_PROTOCOLS");
         cookie.get_reply();
@@ -324,7 +344,9 @@ impl super::SystemContext for Context {
         Self {
             connection: connect,
             window,
-            foreground,
+            black,
+            white,
+            visual,
             delete
         }
     }
@@ -347,7 +369,8 @@ impl super::SystemContext for Context {
             Stat::Xcb(status) => {
                 Some((match status {
                     XcbStat::Connection => XcbData::Connection(self.connection.get_raw_conn()),
-                    XcbStat::Window => XcbData::Window(self.window)
+                    XcbStat::Window => XcbData::Window(self.window),
+                    XcbStat::VisualType => XcbData::VisualType(self.visual)
                 }).into())
             },
             _ => None
