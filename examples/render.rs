@@ -2,8 +2,8 @@
 extern crate ren;
 
 use ren::{
-    graphics::cairo,
-    XcbStat::{Connection, Window, VisualType},
+    render::context::Context,
+    graphics::cairo::{State, xcb_surface, render},
     Body,
     WindowCommand::{Title, Dimension, Map, Update},
 };
@@ -26,13 +26,12 @@ fn main()
     // Map the window
     connect.request(&token, Map);
 
-    // Create cairo context from window connection
-    let surface = cairo::xcb_surface(&mut connect, &token, dim.0 as i32, dim.1 as i32).unwrap();
-    let cx = cairo::Context::new(&surface);
+    // Create surface
+    let surface = xcb_surface(&mut connect, &token, dim.0 as i32, dim.1 as i32).unwrap();
 
-    // Create cairo image surface
+    // Maintain the context state
+    let mut state = Some(State::new());
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/rust.png");
-    let image = cairo::png_surface(path).unwrap();
 
     loop {
         // Wait for an event
@@ -45,14 +44,19 @@ fn main()
                 // Resize the surface
                 surface.set_size(map.1.0 as i32, map.1.1 as i32);
 
+                let mut cx = Context::new();
+
                 // Draw background
-                cx.set_source_rgba(1.0, 1.0, 1.0, 1.0);
-                cx.rectangle(0.0, 0.0, map.1.0 as f64, map.1.1 as f64);
+                cx.rgba(1.0, 1.0, 1.0, 1.0);
+                cx.rect((0, 0), map.1.0 as usize, map.1.1 as usize);
                 cx.fill();
 
                 // Draw image
-                cx.set_source_surface(&image, 0.0, 0.0);
+                cx.image(path, (0, 0));
                 cx.paint();
+
+                // Render to surface
+                state = render(&cx, &surface, state);
 
                 // Update window
                 connect.request(&token, Update);

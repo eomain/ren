@@ -11,6 +11,7 @@ edition = "2018"
 default = []
 async-rt = ["async-std"]
 cairo = ["cairo-rs"]
+render = ["cairo-rs"]
 
 [dependencies.mirage]
 git = "https://github.com/eomain/mirage"

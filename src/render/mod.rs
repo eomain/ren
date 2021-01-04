@@ -20,3 +20,5 @@ pub use mirage::surface::{
     Object,
     Surface
 };
+
+pub use mirage::context;
