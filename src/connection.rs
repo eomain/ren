@@ -70,6 +70,35 @@ impl Connection {
         self.send(token, Message::request(body))
     }
 
+    /// Send many request `Message`s to the windowing system at once.
+    /// # Example
+    /// ```
+    /// use ren::WindowCommand::*;
+    ///
+    /// let mut connect = ren::Connection::open().unwrap();
+    /// let session = connect.begin();
+    ///
+    /// connect.requests(&session, &[
+    ///     // Request the window title
+    ///     Title(format!("Ren - {}", file!())),
+    ///     // Request the window dimensions
+    ///     Dimension((640, 480)),
+    ///     // Map the window
+    ///     Map
+    /// ]);
+    /// ```
+    pub fn requests<T, B>(&mut self, token: &Token, mut requests: T) -> Status
+        where T: AsRef<[B]>, B: Into<Body> + Clone {
+            let mut res = Ok(Message::empty());
+            for request in requests.as_ref().to_vec() {
+                res = self.send(token, Message::request(request));
+                if let Err(_) = res {
+                    return res;
+                }
+            }
+            res
+    }
+
     /// Wait for an `Event`. This will block until there is a response.
     pub fn wait(&self, token: &Token) -> Result<Event, Error>
     {

@@ -8,14 +8,14 @@ fn main()
     let mut connect = ren::Connection::open().unwrap();
     let token = connect.begin();
 
-    // Request the window title
-    connect.request(&token, Title(format!("Ren - {}", file!())));
-
-    // Request the window dimensions
-    connect.request(&token, Dimension((640, 480)));
-
-    // Map the window
-    connect.request(&token, Map);
+    connect.requests(&token, &[
+        // Request the window title
+        Title(format!("Ren - {}", file!())),
+        // Request the window dimensions
+        Dimension((640, 480)),
+        // Map the window
+        Map
+    ]);
 
     // Create surface
     let surface = xcb_surface(&mut connect, &token, 300, 300).unwrap();

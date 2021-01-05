@@ -11,17 +11,16 @@ fn main()
         // Create window session
         let session = connect.begin();
 
-        // Request the window title
-        connect.request(&session, Title(format!("Ren - {}", file!())));
-
-        // Request the window dimensions
-        connect.request(&session, Dimension((640, 480)));
-
-        // Map the window
-        connect.request(&session, Map);
-        
-        // Update the window
-        connect.request(&session, Update);
+        connect.requests(&session, &[
+            // Request the window title
+            Title(format!("Ren - {}", file!())),
+            // Request the window dimensions
+            Dimension((640, 480)),
+            // Map the window
+            Map,
+            // Update the window
+            Update
+        ]);
 
         loop {
              // Await the event

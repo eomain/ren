@@ -16,15 +16,16 @@ fn main()
     let mut connect = ren::Connection::open().unwrap();
     let token = connect.begin();
 
-    // Request the window title
-    connect.request(&token, Title(title));
-
-    // Request the window dimensions
-    connect.request(&token, Dimension((640, 480)));
-
-    // Map the window
-    connect.request(&token, Map);
-    connect.request(&token, Update);
+    connect.requests(&token, &[
+        // Request the window title
+        Title(format!("Ren - {}", file!())),
+        // Request the window dimensions
+        Dimension((640, 480)),
+        // Map the window
+        Map,
+        // Update the window
+        Update
+    ]);
 
     // Get the window ID
     let id = match connect.request(&token, Window).unwrap().take_body() {

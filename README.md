@@ -29,17 +29,16 @@ let mut connect = ren::Connection::open().unwrap();
 // Create window session
 let session = connect.begin();
 
-// Request the window title
-connect.request(&session, Title(format!("Ren - example")));
-
-// Request the window dimensions
-connect.request(&session, Dimension((320, 240)));
-
-// Map the window
-connect.request(&session, Map);
-
-// Update the window
-connect.request(&session, Update);
+connect.requests(&session, &[
+    // Request the window title
+    Title(format!("Ren - {}", file!())),
+    // Request the window dimensions
+    Dimension((320, 240)),
+    // Map the window
+    Map,
+    // Update the window
+    Update
+]);
 
 loop {
     // Wait for an event
