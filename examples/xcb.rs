@@ -2,8 +2,9 @@
 extern crate ren;
 
 use ren::{
-    XcbStat::{Connection, Window, VisualType},
-    Data, XcbData, Body, Message,
+    data::XcbData,
+    stat::XcbStat::{Connection, Window, VisualType},
+    Data, Body, Message,
     WindowCommand::{Title, Dimension, Map, Update},
 };
 
@@ -12,7 +13,7 @@ fn main()
     let title = format!("Ren - {}", file!());
 
     // Open a connection
-    let mut connect = ren::Connection::new();
+    let mut connect = ren::Connection::open().unwrap();
     let token = connect.begin();
 
     // Request the window title
@@ -26,18 +27,18 @@ fn main()
     connect.request(&token, Update);
 
     // Get the window ID
-    let id = match connect.request(&token, Window).unwrap().body() {
-        Body::Data(Data::Xcb(XcbData::Window(id))) => *id,
+    let id = match connect.request(&token, Window).unwrap().take_body() {
+        Body::Data(Data::Xcb(XcbData::Window(id))) => id,
         _ => unreachable!()
     };
 
     // Get the connection
-    let conn = match connect.request(&token, Connection).unwrap().body() {
-        Body::Data(Data::Xcb(XcbData::Connection(conn))) => *conn,
+    let conn = match connect.request(&token, Connection).unwrap().take_body() {
+        Body::Data(Data::Xcb(XcbData::Connection(conn))) => conn,
         _ => unreachable!()
     };
 
-    let mut visual = match connect.request(&token, VisualType).unwrap().body() {
+    let mut visual = match connect.request(&token, VisualType).unwrap().take_body() {
         Body::Data(Data::Xcb(XcbData::VisualType(v))) => v.unwrap(),
         _ => unreachable!()
     };
@@ -48,11 +49,11 @@ fn main()
 
     loop {
         // Wait for an event
-        let message = connect.wait(&token).unwrap();
+        let event = connect.wait(&token).unwrap();
 
-        match message.body() {
+        match event {
             // Terminate response
-            Body::Event(ren::Event::Terminate) => break,
+            ren::Event::Terminate => break,
             _ => ()
         }
     }

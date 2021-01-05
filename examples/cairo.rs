@@ -1,33 +1,25 @@
 
 extern crate ren;
 
-use ren::{
-    graphics::cairo,
-    XcbStat::{Connection, Window, VisualType},
-    Body,
-    WindowCommand::{Title, Dimension, Map, Update},
-};
+use ren::{graphics::cairo, WindowCommand::*};
 
 fn main()
 {
-    let title = format!("Ren - {}", file!());
-    let dim = (300, 300);
-
     // Open a connection
-    let mut connect = ren::Connection::new();
+    let mut connect = ren::Connection::open().unwrap();
     let token = connect.begin();
 
     // Request the window title
-    connect.request(&token, Title(title));
+    connect.request(&token, Title(format!("Ren - {}", file!())));
 
     // Request the window dimensions
-    connect.request(&token, Dimension(dim));
+    connect.request(&token, Dimension((300, 300)));
 
     // Map the window
     connect.request(&token, Map);
 
     // Create cairo context from window connection
-    let surface = cairo::xcb_surface(&mut connect, &token, dim.0 as i32, dim.1 as i32).unwrap();
+    let surface = cairo::xcb_surface(&mut connect, &token, 300, 300).unwrap();
     let cx = cairo::Context::new(&surface);
 
     // Create cairo image surface
@@ -36,18 +28,17 @@ fn main()
 
     loop {
         // Wait for an event
-        let message = connect.wait(&token).unwrap();
-
-        match message.body() {
+        match connect.wait(&token).unwrap() {
             // Terminate response
-            Body::Event(ren::Event::Terminate) => break,
-            Body::Event(ren::Event::Display(ren::DisplayEvent::Expose(map))) => {
+            ren::Event::Terminate => break,
+            ren::Event::Display(ren::DisplayEvent::Expose(map)) => {
+                let (w, h) = map.1;
                 // Resize the surface
-                surface.set_size(map.1.0 as i32, map.1.1 as i32);
+                surface.set_size(w as i32, h as i32);
 
                 // Draw background
                 cx.set_source_rgba(1.0, 1.0, 1.0, 1.0);
-                cx.rectangle(0.0, 0.0, map.1.0 as f64, map.1.1 as f64);
+                cx.rectangle(0.0, 0.0, w as f64, h as f64);
                 cx.fill();
 
                 // Draw image

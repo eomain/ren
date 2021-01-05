@@ -1,54 +1,55 @@
 extern crate ren;
-extern crate mirage;
 
-use mirage::convert::svg;
-use ren::render::Surface;
-use ren::WindowCommand::*;
-
-fn surface() -> Surface
-{
-    svg::into::string(r#"
-        <svg>
-            <rect width="640" height="480" />
-            <text x="280" y="150">hello world</text>
-        </svg>
-    "#).unwrap()
-}
+use ren::{render::context::Context, graphics::cairo::*, WindowCommand::*};
 
 fn main()
 {
-    let title = format!("Ren - {}", file!());
-
     // Open a connection
-    let mut connect = ren::Connection::new();
+    let mut connect = ren::Connection::open().unwrap();
     let token = connect.begin();
 
     // Request the window title
-    connect.request(&token, Title(title));
+    connect.request(&token, Title(format!("Ren - {}", file!())));
 
     // Request the window dimensions
     connect.request(&token, Dimension((640, 480)));
 
     // Map the window
     connect.request(&token, Map);
-    connect.request(&token, Update);
+
+    // Create surface
+    let surface = xcb_surface(&mut connect, &token, 300, 300).unwrap();
 
     loop {
         // Wait for an event
-        let message = connect.wait(&token).unwrap();
-        println!("{:?}", message);
+        let event = connect.wait(&token).unwrap();
+        println!("{:?}", event);
 
-        match message.body() {
+        match event {
             // Terminate response
-            ren::Body::Event(ren::Event::Terminate) => break,
+            ren::Event::Terminate => break,
             // Display response
-            ren::Body::Event(ren::Event::Display(event)) => {
-                // Expose response
-                if let ren::DisplayEvent::Expose(_) = event {
-                    // Draw on the window
-                    connect.request(&token, Draw(surface()));
-                    connect.request(&token, Update);
-                }
+            ren::Event::Display(ren::DisplayEvent::Expose(map)) => {
+                let (w, h) = map.1;
+                // Resize the surface
+                surface.set_size(w as i32, h as i32);
+
+                let mut cx = Context::new();
+
+                // Draw background
+                cx.rgba(1.0, 1.0, 1.0, 1.0);
+                cx.rect((0, 0), w as usize, h as usize);
+                cx.fill();
+
+                cx.rgb(0.0, 0.0, 0.0);
+                cx.move_to((280, 150));
+                cx.text("hello world");
+
+                // Render to surface
+                render(&cx, &surface, None);
+
+                // Update window
+                connect.request(&token, Update);
             },
             _ => ()
         }

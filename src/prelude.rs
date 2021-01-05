@@ -1,31 +1,8 @@
 
 pub use crate::{
-    event::{
-        Event,
-        InputEvent,
-        DisplayEvent,
-        input::{
-            KeyEvent,
-            MouseEvent
-        }
-    },
+    event::{Event, InputEvent, DisplayEvent, input::{KeyEvent, MouseEvent}},
     message::{
-        Error,
-        Token,
-        Message,
-        MessageQueue,
-        Status,
-        Type,
-        Body,
-        Command,
-        WindowCommand,
-        data::{
-            Data,
-            XcbData
-        },
-        stat::{
-            Stat,
-            XcbStat
-        }
+        Error, Token, Message, MessageQueue, Status, Type, Body,
+        Command, WindowCommand, data, data::Data, stat, stat::Stat
     }
 };

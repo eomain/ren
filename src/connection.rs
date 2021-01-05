@@ -1,33 +1,27 @@
 
-use crate::{
-    Token,
-    Body,
-    Message,
-    Status,
-    Error,
-    MessageQueue,
-    session::Session
-};
+use crate::{Token, Event, Body, Message, Status, Error, MessageQueue, session::Session};
 use std::collections::HashMap;
 
 /// A `Connection` is used as the channel for communication with the
 /// windowing system. Communication is done via `Message`s.
-/// You can either a request (Message) and get a response or
-/// wait/poll the system for incoming messages such as `Event`s.
+/// You can either send a request (Message) and get a response or
+/// `.wait/.poll` the system for incoming `Event`s.
+/// Using the `async-rt` feature, we can asynchronously await an `Event`
+/// using the `.event` method.
 pub struct Connection {
     sessions: HashMap<Token, Session>
 }
 
 impl Connection {
-    /// Create a new connection for communication
-    pub fn new() -> Self
+    /// Open a new connection for communication with the windowing system
+    pub fn open() -> Result<Self, Error>
     {
-        Self {
+        Ok(Self {
             sessions: HashMap::new()
-        }
+        })
     }
 
-    /// Begins a new session
+    /// Begins a new window session and returns a `Token` as reference
     pub fn begin(&mut self) -> Token
     {
         let mut token = Token::new();
@@ -39,7 +33,7 @@ impl Connection {
         token
     }
 
-    /// End a current session
+    /// End a current window session
     pub fn end(&mut self, token: &Token) -> Status
     {
         match self.sessions.remove(token) {
@@ -51,10 +45,11 @@ impl Connection {
     /// Check if the connection is active
     pub fn active(&self, token: &Token) -> bool
     {
+        // TODO
         self.sessions.contains_key(token)
     }
 
-    /// Send a session message
+    /// Send a `Message` to the windowing system
     pub fn send(&mut self, token: &Token, message: Message) -> Status
     {
         match self.sessions.get_mut(token) {
@@ -63,20 +58,20 @@ impl Connection {
         }
     }
 
-    /// Send a session request message
+    /// Send a request `Message` to the windowing system
     /// # Example
     /// ```
-    /// let mut connect = ren::Connection::new();
-    /// let token = connect.begin();
-    /// connect.request(&token, ren::WindowCommand::Map);
+    /// let mut connect = ren::Connection::open().unwrap();
+    /// let session = connect.begin();
+    /// connect.request(&session, ren::WindowCommand::Map);
     /// ```
     pub fn request<B>(&mut self, token: &Token, body: B) -> Status
         where B: Into<Body> {
         self.send(token, Message::request(body))
     }
 
-    /// Wait for an `Event` message. This will block until there is a response.
-    pub fn wait(&self, token: &Token) -> Status
+    /// Wait for an `Event`. This will block until there is a response.
+    pub fn wait(&self, token: &Token) -> Result<Event, Error>
     {
         match self.sessions.get(token) {
             None => Err(Error::Token),
@@ -84,34 +79,8 @@ impl Connection {
         }
     }
 
-    /// Poll for an `Event` message. This is non-blocking.
-    /// With the `async-rt` feature enabled,
-    /// we can instead use `.session` to get ahold of the
-    /// session and call `.await` from an async context
-    /// which will resolve to an `Event`.
-    /// # Example
-    ///```
-    /// // Open a connection
-    /// let mut connect = ren::Connection::new();
-    /// let token = connect.begin();
-    ///
-    /// // Init code goes here
-    ///
-    /// // Get the session
-    /// let mut session = connect.session(&token).unwrap();
-    /// loop {
-    ///     // Await the event
-    ///     let message = (&mut session).await;
-    ///     println!("{:?}", message);
-    ///
-    ///     match message.body() {
-    ///         ren::Body::Event(ren::Event::Terminate) => break,
-    ///         _ => ()
-    ///     }
-    ///}
-    ///```
-
-    pub fn poll(&self, token: &Token) -> Status
+    /// Poll for an `Event`. This is non-blocking.
+    pub fn poll(&self, token: &Token) -> Result<Event, Error>
     {
         match self.sessions.get(token) {
             None => Err(Error::Token),
@@ -119,10 +88,49 @@ impl Connection {
         }
     }
 
-    /// Returns a sesssion associated with the connection
-    pub fn session(&mut self, token: &Token) -> Option<&mut Session>
+    /// With the `async-rt` feature enabled,
+    /// we can call `.await` from an async context
+    /// which will resolve to an `Event`.
+    /// # Example
+    ///```
+    /// use ren::async_std::task;
+    ///
+    /// task::block_on(async {
+    ///     // Open a connection
+    ///     let mut connect = ren::Connection::open().unwrap();
+    ///     // Create window session
+    ///     let session = connect.begin();
+    ///
+    ///     // Init code goes here
+    ///
+    ///     loop {
+    ///         // Await the event
+    ///         let event = connect.event(&session).await.unwrap();
+    ///         println!("{:?}", event);
+    ///
+    ///         match event {
+    ///             // Terminate application
+    ///             ren::Event::Terminate => break,
+    ///             _ => ()
+    ///         }
+    ///     }
+    /// });
+    ///```
+    #[cfg(feature = "async-rt")]
+    pub async fn event(&mut self, token: &Token) -> Result<Event, Error>
     {
-        self.sessions.get_mut(token)
+        let session = match self.sessions.remove(token) {
+            None => return Err(Error::Token),
+            Some(session) => session
+        };
+
+        let (event, session) = async_std::task::spawn_blocking(move || {
+            let event = session.wait();
+            (event, session)
+        }).await;
+
+        self.sessions.insert(token.clone(), session);
+        event.map_err(|_| Error::NoEvent)
     }
 
     /// Batch a sequence of messages and return a batch token

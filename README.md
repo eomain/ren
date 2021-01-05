@@ -12,7 +12,7 @@ be either a request (e.g. map the window) or a response (e.g. a key-press).
 - Designed as a compact library
 - Portable across platforms (UNIX, Linux, BSD, etc.) with X11 and/or XCB support
 - Data-driven design eliminates complexity
-- Has support for drawing graphics
+- Has support for drawing vector graphics
 - Receive events as messages
     - Display events (Expose / redraw event)
     - Input events
@@ -21,40 +21,35 @@ be either a request (e.g. map the window) or a response (e.g. a key-press).
 
 ## Example
 ```rust
-extern crate ren;
+use ren::WindowCommand::*;
 
-use ren::Message;
-use ren::WindowCommand::{
-    Title, Dimension, Map
-};
+// Open a connection
+let mut connect = ren::Connection::open().unwrap();
 
-fn main()
-{
-    let title = format!("Ren - example {}", file!());
+// Create window session
+let session = connect.begin();
 
-    // Open a connection
-    let mut connect = ren::Connection::new();
-    let token = connect.begin();
+// Request the window title
+connect.request(&session, Title(format!("Ren - example")));
 
-    // Request the window title
-    connect.send(&token, Message::request(Title(title)));
+// Request the window dimensions
+connect.request(&session, Dimension((320, 240)));
 
-    // Request the window dimensions
-    connect.send(&token, Message::request(Dimension((640, 480))));
+// Map the window
+connect.request(&session, Map);
 
-    // Map the window
-    connect.send(&token, Message::request(Map));
+// Update the window
+connect.request(&session, Update);
 
-    loop {
-        // Wait for an event
-        let message = connect.wait(&token).unwrap();
-        println!("{:?}", message);
+loop {
+    // Wait for an event
+    let event = connect.wait(&session).unwrap();
+    println!("{:?}", event);
 
-        match message.body() {
-            // Terminate response
-            ren::Body::Event(ren::Event::Terminate) => break,
-            _ => ()
-        }
+    match event {
+        // Terminate application
+        ren::Event::Terminate => break,
+        _ => ()
     }
 }
 ```

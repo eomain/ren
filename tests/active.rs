@@ -4,7 +4,7 @@ extern crate ren;
 fn main()
 {
     // Open a connection
-    let mut connect = ren::Connection::new();
+    let mut connect = ren::Connection::open().unwrap();
     let token = connect.begin();
 
     // Assert that it is active
@@ -12,7 +12,7 @@ fn main()
 
     // End the connection
     connect.end(&token);
-    
+
     // Assert that it is not active
     assert_eq!(false, connect.active(&token));
 }

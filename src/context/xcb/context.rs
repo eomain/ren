@@ -2,21 +2,8 @@
 extern crate xcb;
 
 use crate::{
-    Stat,
-    Data,
-    XcbStat,
-    XcbData,
-    WindowCommand,
-    Event,
-    DisplayEvent,
-    KeyEvent,
-    MouseEvent,
-    render,
-    render::{
-        Image,
-        Surface
-    },
-    event
+    Stat, Data, stat::XcbStat, data::XcbData, WindowCommand, Event, DisplayEvent, KeyEvent,
+    MouseEvent, event, render, render::{Image, Surface}
 };
 
 pub struct Context {
@@ -27,9 +14,6 @@ pub struct Context {
     visual: Option<xcb::Visualtype>,
     delete: Option<xcb::Atom>
 }
-
-unsafe impl Send for Context {}
-unsafe impl Sync for Context {}
 
 impl Context {
 

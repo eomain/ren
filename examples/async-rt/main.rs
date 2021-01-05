@@ -1,36 +1,38 @@
+
 extern crate ren;
 
-use ren::WindowCommand::*;
-use ren::async_std::task;
+use ren::{async_std::task, WindowCommand::*};
 
 fn main()
 {
     task::block_on(async {
-        let title = format!("Ren - {}", file!());
-
         // Open a connection
-        let mut connect = ren::Connection::new();
-        let token = connect.begin();
+        let mut connect = ren::Connection::open().unwrap();
+        // Create window session
+        let session = connect.begin();
 
         // Request the window title
-        connect.request(&token, Title(title));
+        connect.request(&session, Title(format!("Ren - {}", file!())));
 
         // Request the window dimensions
-        connect.request(&token, Dimension((640, 480)));
+        connect.request(&session, Dimension((640, 480)));
 
         // Map the window
-        connect.request(&token, Map);
-        connect.request(&token, Update);
+        connect.request(&session, Map);
+        
+        // Update the window
+        connect.request(&session, Update);
 
         loop {
-            // Wait for an event
-            let message = connect.session(&token).unwrap().await;
-            println!("{:?}", message);
+             // Await the event
+             let event = connect.event(&session).await.unwrap();
+             println!("{:?}", event);
 
-            match message.body() {
-                ren::Body::Event(ren::Event::Terminate) => break,
-                _ => ()
-            }
-        }
+             match event {
+                 // Terminate application
+                 ren::Event::Terminate => break,
+                 _ => ()
+             }
+         }
     });
 }

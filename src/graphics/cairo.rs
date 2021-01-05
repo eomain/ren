@@ -10,7 +10,7 @@ pub use cairo::*;
 pub fn xcb_surface(connect: &mut crate::Connection,
            token: &Token, width: i32, height: i32) -> Option<XCBSurface>
 {
-    use crate::{XcbData, XcbStat::*};
+    use crate::{data::XcbData, stat::XcbStat::*};
 
     let id = match connect.request(&token, Window).ok()?.take_body() {
         Body::Data(Data::Xcb(XcbData::Window(id))) => id,
@@ -57,7 +57,7 @@ impl State {
 pub fn render(cx: &context::Context, surface: &Surface, mut state: Option<State>) -> Option<State>
 {
     use context::{Command, ImageType, ImageFormat};
-    
+
     let cr = cairo::Context::new(&surface);
 
     use Command::*;

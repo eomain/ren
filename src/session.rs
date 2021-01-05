@@ -1,19 +1,8 @@
 
 use crate::{
-    Token,
-    Message,
-    Command,
-    Status,
-    Body,
-    Error,
-    Type,
-    MessageQueue,
-    context::Context,
-    system::SystemType
+    Token, Event, Message, Command, Status, Body, Error, Type,
+    MessageQueue, context::Context, system::SystemType
 };
-use std::pin::Pin;
-use std::task::Poll;
-use std::future::Future;
 use std::collections::HashMap;
 
 /// A single window session
@@ -35,16 +24,16 @@ impl Session {
         }
     }
 
-    pub fn wait(&self) -> Status
+    pub fn wait(&self) -> Result<Event, Error>
     {
         let event = self.context.event();
-        event.map(|e| Message::response(e)).ok_or(Error::NoEvent)
+        event.ok_or(Error::NoEvent)
     }
 
-    pub fn poll(&self) -> Status
+    pub fn poll(&self) -> Result<Event, Error>
     {
         let event = self.context.poll();
-        event.map(|e| Message::response(e)).ok_or(Error::NoEvent)
+        event.ok_or(Error::NoEvent)
     }
 
     fn command(&mut self, command: &Command)
@@ -97,29 +86,3 @@ impl Session {
         Ok(Message::empty())
     }
 }
-
-macro_rules! session_fut {
-    ($t:ty) => {
-        impl Future for $t {
-            type Output = Message;
-
-            fn poll(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
-                use crate::{Body, Event};
-                match Session::poll(&self) {
-                    Err(e) => {
-                        cx.waker().wake_by_ref();
-                        Poll::Pending
-                    },
-                    Ok(event) => Poll::Ready(event)
-                }
-            }
-        }
-    }
-}
-
-#[cfg(feature = "async-rt")]
-session_fut!(Session);
-#[cfg(feature = "async-rt")]
-session_fut!(&Session);
-#[cfg(feature = "async-rt")]
-session_fut!(&&Session);
