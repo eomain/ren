@@ -130,6 +130,12 @@ pub fn render(cx: &context::Context, surface: &Surface, mut state: Option<State>
                 let (x, y) = (point.x as f64, point.y as f64);
                 cr.arc(x, y, *radius as f64, *angle1, *angle2);
             },
+            Curve(p1, p2, p3) => {
+                let (x1, y1) = (p1.x as f64, p1.y as f64);
+                let (x2, y2) = (p2.x as f64, p2.y as f64);
+                let (x3, y3) = (p3.x as f64, p3.y as f64);
+                cr.curve_to(x1, y1, x2, y2, x3, y3);
+            },
             Scale(x, y) => cr.scale(*x, *y),
             Rotate(angle) => cr.rotate(*angle),
             Translate(x, y) => cr.translate(*x, *y),
