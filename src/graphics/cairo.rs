@@ -91,7 +91,7 @@ pub fn render(cx: &context::Context, surface: &Surface, mut state: Option<State>
                 },
                 ImageType::Data(data, format, width, height) => {
                     let format = match format {
-                        ImageFormat::Rgb8 => Format::Rgb24,
+                        ImageFormat::Bgra8 => Format::ARgb32,
                         _ => continue
                     };
                     let mut data = match data.try_borrow_mut() {
@@ -112,11 +112,23 @@ pub fn render(cx: &context::Context, surface: &Surface, mut state: Option<State>
             },
             FontSize(size) => cr.set_font_size(*size),
             Move(point) => cr.move_to(point.x as f64, point.y as f64),
+            RelMove(point) => cr.rel_move_to(point.x as f64, point.y as f64),
             Line(point) => cr.line_to(point.x as f64, point.y as f64),
             RelLine(point) => cr.rel_line_to(point.x as f64, point.y as f64),
             Rect(rect) => {
                 let (x, y) = (rect.point.x, rect.point.y);
                 cr.rectangle(x as f64, y as f64, rect.width as f64, rect.height as f64);
+            },
+            RelRect(width, height) => {
+                cr.rel_move_to(0.0, 0.0);
+                cr.rel_line_to(*width as f64, 0.0);
+                cr.rel_line_to(0.0, *height as f64);
+                cr.rel_line_to(-(*width as f64), 0.0);
+                cr.close_path();
+            },
+            Arc(point, radius, angle1, angle2) => {
+                let (x, y) = (point.x as f64, point.y as f64);
+                cr.arc(x, y, *radius as f64, *angle1, *angle2);
             },
             Scale(x, y) => cr.scale(*x, *y),
             Rotate(angle) => cr.rotate(*angle),
