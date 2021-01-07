@@ -5,8 +5,28 @@ use super::{
     Position
 };
 
+/// Keyboard input data
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct KeyCode(pub u16);
 
-/// A mapping of KeyBoard events.
+impl KeyCode {
+    pub(crate) fn new(code: u16) -> Self {
+        Self { 0: code }
+    }
+
+    /// Return the keycode
+    pub fn code(&self) -> u16 {
+        self.0
+    }
+
+    /// Map the keycode to a keyboard character map
+    fn map(&self) -> KeyMap {
+        unimplemented!()
+    }
+}
+
+/// A mapping of possible keyboard characters.
+#[non_exhaustive]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum KeyMap {
     Esc,
@@ -68,7 +88,6 @@ pub enum KeyMap {
     X,
     Y,
     Z,
-
     /// An unknown key
     Unknown(u16)
 }
@@ -77,9 +96,9 @@ pub enum KeyMap {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum KeyEvent {
     /// A Key press has occured.
-    Press(KeyMap),
+    Press(KeyCode),
     /// A Key release has occured.
-    Release(KeyMap)
+    Release(KeyCode)
 }
 
 impl From<KeyEvent> for InputEvent {

@@ -1,7 +1,7 @@
 
 extern crate xcb;
 
-use super::{Coord, Size, Position, input::KeyMap, display::Map};
+use super::{Coord, Size, Position, input::{KeyCode, KeyMap}, display::Map};
 
 pub fn expose(event: &xcb::GenericEvent) -> Map
 {
@@ -54,22 +54,22 @@ fn keymap(code: xcb::ffi::xcb_keycode_t) -> KeyMap
     }
 }
 
- pub fn key_press(event: &xcb::GenericEvent) -> KeyMap
+ pub fn key_press(event: &xcb::GenericEvent) -> KeyCode
  {
      let key: &xcb::KeyPressEvent = unsafe {
          xcb::cast_event(event)
      };
 
-     keymap(key.detail())
+     KeyCode::new(key.detail() as u16)
  }
 
- pub fn key_release(event: &xcb::GenericEvent) -> KeyMap
+ pub fn key_release(event: &xcb::GenericEvent) -> KeyCode
  {
      let key: &xcb::KeyReleaseEvent = unsafe {
          xcb::cast_event(event)
      };
 
-     keymap(key.detail())
+     KeyCode::new(key.detail() as u16)
  }
 
  pub fn button_press(event: &xcb::GenericEvent) -> Position
