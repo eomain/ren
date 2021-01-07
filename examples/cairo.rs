@@ -19,7 +19,7 @@ fn main()
     ]);
 
     // Create cairo context from window connection
-    let surface = cairo::xcb_surface(&mut connect, &token, 300, 300).unwrap();
+    let surface = cairo::surface(&mut connect, &token, (300, 300)).unwrap();
     let cx = cairo::Context::new(&surface);
 
     // Create cairo image surface

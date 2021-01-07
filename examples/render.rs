@@ -1,7 +1,7 @@
 
 extern crate ren;
 
-use ren::{render::context::Context, graphics::cairo::*, WindowCommand::*};
+use ren::{graphics::{context::Context, *}, WindowCommand::*};
 
 fn main()
 {
@@ -19,7 +19,7 @@ fn main()
     ]);
 
     // Create surface
-    let surface = xcb_surface(&mut connect, &token, 300, 300).unwrap();
+    let surface = surface(&mut connect, &token, (300, 300)).unwrap();
 
     // Maintain the context state
     let mut state = Some(State::new());

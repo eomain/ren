@@ -6,9 +6,19 @@ use crate::{Token, Data, Body, render::context};
 
 pub use cairo::*;
 
-/// Get cairo xcb surface from `Connection`
-pub fn xcb_surface(connect: &mut crate::Connection,
-           token: &Token, width: i32, height: i32) -> Option<XCBSurface>
+/// Cairo surface
+pub type Surface = XCBSurface;
+
+/// Get a cairo window surface from a `Connection`
+pub fn surface(connect: &mut crate::Connection, window: &Token,
+    dimensions: (i32, i32)) -> Option<Surface>
+{
+    xcb_surface(connect, window, dimensions.0, dimensions.1)
+}
+
+/// Get cairo xcb surface from a `Connection`
+fn xcb_surface(connect: &mut crate::Connection,
+           token: &Token, width: i32, height: i32) -> Option<Surface>
 {
     use crate::{data::XcbData, stat::XcbStat::*};
 
@@ -75,17 +85,12 @@ pub fn render(cx: &context::Context, surface: &Surface, mut state: Option<State>
                         }
                     }
 
-                    if let Some(ext) = path.extension().map(|p| p.to_str()) {
-                        match ext {
-                            Some("png") => {
-                                if let Some(png) = png_surface(path) {
-                                    cr.set_source_surface(&png, point.x as f64, point.y as f64);
-                                    if let Some(state) = state.as_mut() {
-                                        state.images.insert(path.to_path_buf(), png);
-                                    }
-                                }
-                            },
-                            _ => ()
+                    if let Some("png") = path.extension().map(|p| p.to_str()).flatten() {
+                        if let Some(png) = png_surface(path) {
+                            cr.set_source_surface(&png, point.x as f64, point.y as f64);
+                            if let Some(state) = state.as_mut() {
+                                state.images.insert(path.to_path_buf(), png);
+                            }
                         }
                     }
                 },
