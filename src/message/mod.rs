@@ -4,6 +4,17 @@
 
 extern crate uuid;
 
+macro_rules! body_from {
+    ($t: ty, $i: ident) => {
+        impl From<$t> for Body {
+            fn from(b: $t) -> Self
+            {
+                Body::$i(b.into())
+            }
+        }
+    }
+}
+
 pub mod data;
 pub mod stat;
 
@@ -98,6 +109,8 @@ pub enum WindowCommand {
     Draw(Surface),
     /// Request to draw image to window
     Image(Image),
+    /// Request to clear the window
+    Clear,
     /// Request to update the window
     Update
 }

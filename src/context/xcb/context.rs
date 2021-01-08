@@ -2,7 +2,7 @@
 extern crate xcb;
 
 use crate::{
-    Stat, Data, stat::XcbStat, data::XcbData, WindowCommand, Event, DisplayEvent, KeyEvent,
+    Stat, Data, WindowCommand, Event, DisplayEvent, KeyEvent,
     MouseEvent, event, render, render::{Image, Surface}
 };
 
@@ -42,6 +42,26 @@ impl Context {
             self.window,
             values
         );
+    }
+
+    fn geometry(&self) -> Option<xcb::GetGeometryReply>
+    {
+        xcb::get_geometry(&self.connection, self.window).get_reply().ok()
+    }
+
+    fn stat_position(&self) -> Option<(u32, u32)>
+    {
+        self.geometry().map(|g| (g.x() as u32, g.y() as u32))
+    }
+
+    fn stat_dimension(&self) -> Option<(u32, u32)>
+    {
+        self.geometry().map(|g| (g.width() as u32, g.height() as u32))
+    }
+
+    fn stat_depth(&self) -> Option<u8>
+    {
+        self.geometry().map(|g| g.depth())
     }
 
     fn window_title(&self, name: &str)
@@ -206,6 +226,10 @@ impl Context {
                     MouseEvent::Leave(event::xcb::mouse_leave(&e)).into()
                 },
 
+                xcb::FOCUS_IN => DisplayEvent::FocusIn.into(),
+
+                xcb::FOCUS_OUT => DisplayEvent::FocusOut.into(),
+
                 xcb::CLIENT_MESSAGE => {
                     let event = unsafe { xcb::cast_event::<xcb::ClientMessageEvent>(&e) };
                     if event.type_() == 32 {
@@ -222,6 +246,19 @@ impl Context {
             }
         })
     }
+
+    fn window_clear(&self)
+    {
+        let g = match self.geometry() {
+            None => return,
+            Some(g) => g
+        };
+        let x = g.x();
+        let y = g.y();
+        let w = g.width();
+        let h = g.height();
+        xcb::clear_area(&self.connection, false, self.window, x, y, h, w);
+    }
 }
 
 static EVENT_MASK: xcb::EventMask = (
@@ -237,7 +274,13 @@ static EVENT_MASK: xcb::EventMask = (
     xcb::EVENT_MASK_BUTTON_4_MOTION |
     xcb::EVENT_MASK_BUTTON_5_MOTION |
     xcb::EVENT_MASK_ENTER_WINDOW |
-    xcb::EVENT_MASK_LEAVE_WINDOW
+    xcb::EVENT_MASK_LEAVE_WINDOW |
+    xcb::EVENT_MASK_FOCUS_CHANGE
+    /*xcb::EVENT_MASK_RESIZE_REDIRECT |
+    xcb::EVENT_MASK_STRUCTURE_NOTIFY |
+    xcb::EVENT_MASK_SUBSTRUCTURE_NOTIFY |
+    xcb::EVENT_MASK_SUBSTRUCTURE_REDIRECT |
+    xcb::EVENT_MASK_VISIBILITY_CHANGE*/
 );
 
 #[inline]
@@ -349,7 +392,16 @@ impl super::SystemContext for Context {
 
     fn stat(&self, status: Stat) -> Option<Data>
     {
+        use crate::{stat::{WindowStat, XcbStat}, data::{WindowData, XcbData}};
+
         match status {
+            Stat::Window(status) => {
+                Some((match status {
+                    WindowStat::Position => WindowData::Position(self.stat_position()?),
+                    WindowStat::Dimension => WindowData::Dimension(self.stat_dimension()?),
+                    WindowStat::Depth => WindowData::Depth(self.stat_depth()?)
+                }).into())
+            },
             Stat::Xcb(status) => {
                 Some((match status {
                     XcbStat::Connection => XcbData::Connection(self.connection.get_raw_conn()),
@@ -374,6 +426,7 @@ impl super::SystemContext for Context {
             StackBelow => self.window_stack_below(),
             Draw(surface) => self.window_draw(surface),
             Image(image) => self.window_image(image),
+            Clear => self.window_clear(),
             Update => self.update()
         }
     }

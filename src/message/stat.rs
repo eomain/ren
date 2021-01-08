@@ -4,6 +4,8 @@ use super::Body;
 /// A type used to get status info
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Stat {
+    /// Window status
+    Window(WindowStat),
     /// When using XCB
     Xcb(XcbStat)
 }
@@ -14,6 +16,31 @@ impl From<Stat> for Body {
         Body::Stat(s)
     }
 }
+
+macro_rules! stat_from {
+    ($t: ty, $i: ident) => {
+        impl From<$t> for Stat {
+            fn from(data: $t) -> Self
+            {
+                Stat::$i(data)
+            }
+        }
+    }
+}
+
+/// Window status info
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum WindowStat {
+    /// Get the window position
+    Position,
+    /// Get the window dimensions
+    Dimension,
+    /// Get the window depth
+    Depth
+}
+
+stat_from!(WindowStat, Window);
+body_from!(WindowStat, Stat);
 
 /// XCB status info
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -26,16 +53,5 @@ pub enum XcbStat {
     VisualType
 }
 
-impl From<XcbStat> for Stat {
-    fn from(stat: XcbStat) -> Self
-    {
-        Stat::Xcb(stat)
-    }
-}
-
-impl From<XcbStat> for Body {
-    fn from(s: XcbStat) -> Self
-    {
-        Body::Stat(s.into())
-    }
-}
+stat_from!(XcbStat, Xcb);
+body_from!(XcbStat, Stat);

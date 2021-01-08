@@ -30,19 +30,30 @@ pub type Position = (Coord, Coord);
 
 pub type Dimension = (Size, Size);
 
+macro_rules! event_from {
+    ($t: ty, $i: ident) => {
+        impl From<$t> for Event {
+            fn from(e: $t) -> Self
+            {
+                Event::$i(e)
+            }
+        }
+    }
+}
+
 /// A display event
+#[non_exhaustive]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum DisplayEvent {
     /// An area of the window that needs to be updated.
-    Expose(display::Map)
+    Expose(display::Map),
+    /// The window gained focus
+    FocusIn,
+    /// The window lost focus
+    FocusOut
 }
 
-impl From<DisplayEvent> for Event {
-    fn from(d: DisplayEvent) -> Self
-    {
-        Event::Display(d)
-    }
-}
+event_from!(DisplayEvent, Display);
 
 /// An input event
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -53,14 +64,10 @@ pub enum InputEvent {
     Mouse(input::MouseEvent)
 }
 
-impl From<InputEvent> for Event {
-    fn from(i: InputEvent) -> Self
-    {
-        Event::Input(i)
-    }
-}
+event_from!(InputEvent, Input);
 
 /// An `Event`
+#[non_exhaustive]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Event {
     /// An unknown event occurred. May contain an event code
