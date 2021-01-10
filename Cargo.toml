@@ -7,6 +7,9 @@ keywords = ["ui", "gui", "windowing-system", "async", "graphics"]
 categories = ["gui"]
 edition = "2018"
 
+[lib]
+name = "ren"
+
 [features]
 default = []
 async-rt = ["async-std"]

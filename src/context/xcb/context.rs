@@ -249,15 +249,7 @@ impl Context {
 
     fn window_clear(&self)
     {
-        let g = match self.geometry() {
-            None => return,
-            Some(g) => g
-        };
-        let x = g.x();
-        let y = g.y();
-        let w = g.width();
-        let h = g.height();
-        xcb::clear_area(&self.connection, false, self.window, x, y, h, w);
+        xcb::clear_area(&self.connection, false, self.window, 0, 0, 0, 0);
     }
 }
 
@@ -275,12 +267,12 @@ static EVENT_MASK: xcb::EventMask = (
     xcb::EVENT_MASK_BUTTON_5_MOTION |
     xcb::EVENT_MASK_ENTER_WINDOW |
     xcb::EVENT_MASK_LEAVE_WINDOW |
-    xcb::EVENT_MASK_FOCUS_CHANGE
-    /*xcb::EVENT_MASK_RESIZE_REDIRECT |
+    xcb::EVENT_MASK_FOCUS_CHANGE |
+    /*xcb::EVENT_MASK_RESIZE_REDIRECT |*/
     xcb::EVENT_MASK_STRUCTURE_NOTIFY |
     xcb::EVENT_MASK_SUBSTRUCTURE_NOTIFY |
-    xcb::EVENT_MASK_SUBSTRUCTURE_REDIRECT |
-    xcb::EVENT_MASK_VISIBILITY_CHANGE*/
+    /*xcb::EVENT_MASK_SUBSTRUCTURE_REDIRECT |*/
+    xcb::EVENT_MASK_VISIBILITY_CHANGE
 );
 
 #[inline]
