@@ -1,5 +1,8 @@
 
-use crate::{Token, Event, Body, Message, Status, Error, MessageQueue, session::Session};
+use crate::{
+	Token, Event, Body, Message, Status, Error, MessageQueue,
+	session::Session, context::{ConnectionError}, system::{System, SystemType}
+};
 use std::collections::HashMap;
 
 /// A `Connection` is used as the channel for communication with the
@@ -9,14 +12,25 @@ use std::collections::HashMap;
 /// Using the `async-rt` feature, we can asynchronously await an `Event`
 /// using the `.event` method.
 pub struct Connection {
+	system: System,
     sessions: HashMap<Token, Session>
 }
 
 impl Connection {
-    /// Open a new connection for communication with the windowing system
-    pub fn open() -> Result<Self, Error>
+    /// Open a new connection for communication with the default windowing system
+    pub fn open() -> Result<Self, Option<ConnectionError>>
     {
         Ok(Self {
+        	system: System::new(SystemType::default())?,
+            sessions: HashMap::new()
+        })
+    }
+    
+    /// Open a new connection for communication with the windowing system
+    pub fn open_with(ty: SystemType) -> Result<Self, Option<ConnectionError>>
+    {
+        Ok(Self {
+        	system: System::new(ty)?,
             sessions: HashMap::new()
         })
     }
@@ -28,7 +42,8 @@ impl Connection {
         while self.sessions.contains_key(&token) {
             token = Token::new();
         }
-        let session = Session::new();
+        let window = self.system.create_window();
+        let session = Session::new(window);
         self.sessions.insert(token.clone(), session);
         token
     }
@@ -87,7 +102,7 @@ impl Connection {
     ///     Map
     /// ]);
     /// ```
-    pub fn requests<T, B>(&mut self, token: &Token, mut requests: T) -> Status
+    pub fn requests<T, B>(&mut self, token: &Token, requests: T) -> Status
         where T: AsRef<[B]>, B: Into<Body> + Clone {
             let mut res = Ok(Message::empty());
             for request in requests.as_ref().to_vec() {
@@ -163,7 +178,7 @@ impl Connection {
     }
 
     /// Batch a sequence of messages and return a batch token
-    pub fn batch(&mut self, token: &Token, mut queue: MessageQueue) -> Result<Token, Error>
+    pub fn batch(&mut self, token: &Token, queue: MessageQueue) -> Result<Token, Error>
     {
         match self.sessions.get_mut(token) {
             None => Err(Error::Token),

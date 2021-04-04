@@ -2,6 +2,7 @@
 use super::Body;
 
 /// A type used to get status info
+#[non_exhaustive]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Stat {
     /// Window status
@@ -29,6 +30,7 @@ macro_rules! stat_from {
 }
 
 /// Window status info
+#[non_exhaustive]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum WindowStat {
     /// Get the window position
@@ -43,6 +45,7 @@ stat_from!(WindowStat, Window);
 body_from!(WindowStat, Stat);
 
 /// XCB status info
+#[non_exhaustive]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum XcbStat {
     /// Get the raw connection

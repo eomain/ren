@@ -5,6 +5,7 @@ use std::fmt::{Debug, Formatter, Error};
 use super::Body;
 
 /// A type containing status data
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Data {
     /// Window data
@@ -32,6 +33,7 @@ macro_rules! data_from {
 }
 
 /// Window status data
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq)]
 pub enum WindowData {
     /// Get the window position
@@ -46,6 +48,7 @@ data_from!(WindowData, Window);
 body_from!(WindowData, Data);
 
 /// XCB status data
+#[non_exhaustive]
 #[derive(Clone)]
 pub enum XcbData {
     /// Get the raw connection

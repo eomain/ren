@@ -1,73 +1,24 @@
 
 pub mod xcb;
 
-use std::sync::Arc;
-use crate::{
-    Stat,
-    Data,
-    WindowCommand,
-    render::Surface,
-    event::Event,
-    system::{
-        init,
-        System,
-        SystemType
-    }
-};
+use crate::{Stat, Data, WindowCommand, event::Event};
 
-pub struct Context {
-    pub ty: SystemType,
-    system: System,
-    pub event: Box<dyn Fn(&System) -> Option<Event> + Send + Sync>,
-    pub poll: Box<dyn Fn(&System) -> Option<Event> + Send + Sync>,
-    pub stat: Box<dyn Fn(&System, Stat) -> Option<Data> + Send + Sync>,
-    pub window: Box<dyn Fn(&System, &WindowCommand) + Send + Sync>
+/// A connection error with the windowing system
+#[derive(Debug, Clone, PartialEq)]
+pub enum ConnectionError {
+	
 }
 
-impl Context {
-    pub fn new(ty: SystemType) -> Self {
-        Self {
-            ty,
-            system: System::new(ty),
-            event: Box::new(|_| None),
-            poll: Box::new(|_| None),
-            stat: Box::new(|_, _| None),
-            window: Box::new(|_, _| {})
-        }
-    }
+pub trait WindowContext {
 
-    pub fn init(&mut self) {
-        init(self, self.ty);
-    }
+	fn event(&self) -> Option<Event>;
 
-    pub fn event(&self) -> Option<Event> {
-        (self.event)(&self.system)
-    }
+	fn poll(&self) -> Option<Event>;
 
-    pub fn poll(&self) -> Option<Event> {
-        (self.poll)(&self.system)
-    }
+	fn stat(&self, _: Stat) -> Option<Data>;
 
-    pub fn stat(&self, status: Stat) -> Option<Data> {
-        (self.stat)(&self.system, status)
-    }
+	fn window(&self, _: &WindowCommand);
 
-    pub fn window(&self, command: &WindowCommand) {
-        (self.window)(&self.system, command);
-    }
-}
+	fn update(&self);
 
-pub trait SystemContext {
-
-    fn init() -> Self;
-
-    fn event(&self) -> Option<Event>;
-
-    fn poll(&self) -> Option<Event>;
-
-    fn stat(&self, _: Stat) -> Option<Data>;
-
-    fn window(&self, _: &WindowCommand);
-
-    fn update(&self);
 }

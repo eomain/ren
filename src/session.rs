@@ -1,38 +1,34 @@
 
 use crate::{
     Token, Event, Message, Command, Status, Body, Error, Type,
-    MessageQueue, context::Context, system::SystemType
+    MessageQueue, system::Window
 };
 use std::collections::HashMap;
 
 /// A single window session
 pub struct Session {
-    pub batch: HashMap<Token, MessageQueue>,
-    context: Context
+	window: Window,
+    pub batch: HashMap<Token, MessageQueue>
 }
 
 impl Session {
-    pub fn new() -> Self
+    pub fn new(window: Window) -> Self
     {
-        let sys = SystemType::default();
-        let mut context = Context::new(sys);
-        context.init();
-
         Self {
-            batch: HashMap::new(),
-            context
+        	window,
+            batch: HashMap::new()
         }
     }
 
     pub fn wait(&self) -> Result<Event, Error>
     {
-        let event = self.context.event();
+        let event = self.window.event();
         event.ok_or(Error::NoEvent)
     }
 
     pub fn poll(&self) -> Result<Event, Error>
     {
-        let event = self.context.poll();
+        let event = self.window.poll();
         event.ok_or(Error::NoEvent)
     }
 
@@ -40,7 +36,7 @@ impl Session {
     {
         match command {
             Command::Window(command) => {
-                self.context.window(command);
+                self.window.window(command);
             },
             _ => ()
         }
@@ -50,7 +46,7 @@ impl Session {
     {
         match body {
             Body::Stat(s) => {
-                match self.context.stat(*s) {
+                match self.window.stat(*s) {
                     Some(data) => return Ok(Message::response(data)),
                     _ => ()
                 }

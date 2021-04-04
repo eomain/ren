@@ -21,10 +21,7 @@ pub mod stat;
 use stat::Stat;
 use data::Data;
 use uuid::Uuid;
-use crate::render::{
-    Image,
-    Surface
-};
+use crate::render::Image;
 use crate::event::Event;
 
 /// The type of the `Message`.
@@ -89,6 +86,7 @@ impl From<Event> for Body {
 }
 
 /// Commands for window requests.
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq)]
 pub enum WindowCommand {
     /// Request window title
@@ -105,8 +103,6 @@ pub enum WindowCommand {
     StackAbove,
     /// Request to stack the window below
     StackBelow,
-    /// Request to draw to window
-    Draw(Surface),
     /// Request to draw image to window
     Image(Image),
     /// Request to clear the window
@@ -302,11 +298,7 @@ impl MessageQueue {
     {
         match self.limit {
             None => false,
-            Some(limit) => if limit == self.size() {
-                true
-            } else {
-                false
-            }
+            Some(limit) => limit == self.size()
         }
     }
 
