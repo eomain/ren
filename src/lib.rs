@@ -38,8 +38,6 @@
 //! }
 //! ```
 
-extern crate mirage;
-
 mod context;
 mod system;
 mod session;

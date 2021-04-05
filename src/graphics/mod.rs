@@ -10,7 +10,7 @@ pub mod cairo;
 mod cairo;
 
 #[cfg(feature = "render")]
-pub use mirage::context;
+pub use crate::render::context;
 #[cfg(feature = "render")]
 pub use self::cairo::{State, Surface};
 

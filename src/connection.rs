@@ -20,10 +20,7 @@ impl Connection {
     /// Open a new connection for communication with the default windowing system
     pub fn open() -> Result<Self, Option<ConnectionError>>
     {
-        Ok(Self {
-        	system: System::new(SystemType::default())?,
-            sessions: HashMap::new()
-        })
+        Self::open_with(SystemType::default())
     }
     
     /// Open a new connection for communication with the windowing system

@@ -16,9 +16,6 @@ async-rt = ["async-std"]
 cairo = ["cairo-rs"]
 render = ["cairo-rs"]
 
-[dependencies.mirage]
-git = "https://github.com/eomain/mirage"
-
 [dependencies.xcb]
 version = "0.9"
 features = ["thread"]

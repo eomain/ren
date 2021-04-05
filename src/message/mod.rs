@@ -21,7 +21,6 @@ pub mod stat;
 use stat::Stat;
 use data::Data;
 use uuid::Uuid;
-use crate::render::Image;
 use crate::event::Event;
 
 /// The type of the `Message`.
@@ -103,8 +102,6 @@ pub enum WindowCommand {
     StackAbove,
     /// Request to stack the window below
     StackBelow,
-    /// Request to draw image to window
-    Image(Image),
     /// Request to clear the window
     Clear,
     /// Request to update the window
@@ -132,8 +129,8 @@ impl From<&Error> for String {
     {
         use Error::*;
         match e {
-            Type => "specified unexpected message type".into(),
-            Token => "specified undefined token".into(),
+            Type => "specified an unexpected message type".into(),
+            Token => "supplied an undefined token".into(),
             NoEvent => "no event".into(),
             Custom(s) => s.into()
         }
@@ -272,7 +269,7 @@ impl MessageQueue {
     /// Retrieve the message at the front of the queue
     pub fn front(&mut self) -> Option<Message>
     {
-        if self.messages.len() > 0 {
+        if !self.messages.is_empty() {
             Some(self.messages.remove(0))
         } else {
             None
@@ -313,22 +310,23 @@ impl MessageQueue {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn message()
-    {
+    fn message() {
         let mut queue = MessageQueue::new();
         queue.limit(Some(0));
         queue.enqueue(Message::empty());
         println!("{:?}", queue);
-        assert_eq!(true, queue.full());
-    }
-
-    #[test]
-    fn error()
-    {
-        println!("{}", Error::Token);
+        assert!(queue.full());
+        assert_eq!(queue.front(), None);
+        queue.limit(None);
+        queue.enqueue(Message::request(Body::None));
+        queue.enqueue(Message::empty());
+        queue.enqueue(Message::empty());
+        assert_eq!(queue.size(), 3);
+        assert_eq!(queue.front(), Some(Message::request(Body::None)));
     }
 }

@@ -317,7 +317,6 @@ impl super::WindowContext for Window {
 			Unmap => self.unmap(),
 			StackAbove => self.stack_above(),
 			StackBelow => self.stack_below(),
-			Image(_) => /* TODO */ (),
 			Clear => self.clear(),
 			Update => { self.connection.flush(); }
 		}
