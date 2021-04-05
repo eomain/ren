@@ -99,16 +99,12 @@ impl Connection {
     ///     Map
     /// ]);
     /// ```
-    pub fn requests<T, B>(&mut self, token: &Token, requests: T) -> Status
+    pub fn requests<T, B>(&mut self, token: &Token, requests: T) -> Vec<Status>
         where T: AsRef<[B]>, B: Into<Body> + Clone {
-            let mut res = Ok(Message::empty());
-            for request in requests.as_ref().to_vec() {
-                res = self.send(token, Message::request(request));
-                if let Err(_) = res {
-                    return res;
-                }
-            }
-            res
+            requests.as_ref().to_vec()
+                .into_iter()
+                .map(|b| self.send(token, Message::request(b)))
+                .collect()
     }
 
     /// Wait for an `Event`. This will block until there is a response.
