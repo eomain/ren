@@ -7,9 +7,11 @@ use crate::{Token, Data, Body, render::context};
 pub use cairo::*;
 
 /// Cairo surface
+#[cfg(target_family = "unix")]
 pub type Surface = XCBSurface;
 
 /// Get a cairo window surface from a `Connection`
+#[cfg(target_family = "unix")]
 pub fn surface(connect: &mut crate::Connection, window: &Token,
     dimensions: (i32, i32)) -> Option<Surface>
 {
@@ -17,6 +19,7 @@ pub fn surface(connect: &mut crate::Connection, window: &Token,
 }
 
 /// Get cairo xcb surface from a `Connection`
+#[cfg(target_family = "unix")]
 fn xcb_surface(connect: &mut crate::Connection,
            token: &Token, width: i32, height: i32) -> Option<Surface>
 {

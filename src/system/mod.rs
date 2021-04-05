@@ -2,13 +2,17 @@
 use crate::{
 	Stat, Data, WindowCommand,
 	event::Event,
-	context::{xcb, WindowContext, ConnectionError}
+	context::{WindowContext, ConnectionError}
 };
+
+#[cfg(target_family = "unix")]
+use crate::context::xcb;
 
 /// The kind of windowing system
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SystemType {
+	#[cfg(target_family = "unix")]
 	Xcb
 }
 
@@ -20,10 +24,12 @@ impl Default for SystemType {
 }
 
 pub enum Window {
+	#[cfg(target_family = "unix")]
 	Xcb(xcb::Window)
 }
 
 impl Window {
+	#[cfg(target_family = "unix")]
 	pub fn event(&self) -> Option<Event> {
 		use Window::*;
 		match self {
@@ -31,6 +37,7 @@ impl Window {
 		}
 	}
 	
+	#[cfg(target_family = "unix")]
 	pub fn poll(&self) -> Option<Event> {
 		use Window::*;
 		match self {
@@ -38,6 +45,7 @@ impl Window {
 		}
 	}
 	
+	#[cfg(target_family = "unix")]
 	pub fn stat(&self, stat: Stat) -> Option<Data> {
 		use Window::*;
 		match self {
@@ -45,6 +53,7 @@ impl Window {
 		}
 	}
 	
+	#[cfg(target_family = "unix")]
 	pub fn window(&self, command: &WindowCommand) {
 		use Window::*;
 		match self {
@@ -54,21 +63,24 @@ impl Window {
 }
 
 pub enum SystemConnection {
+	#[cfg(target_family = "unix")]
 	Xcb(xcb::Connection)
 }
 
 impl SystemConnection {
-	pub fn new(ty: SystemType) -> Result<Self, Option<ConnectionError>>
+	#[cfg(target_family = "unix")]
+	fn new(ty: SystemType) -> Result<Self, Option<ConnectionError>>
 	{
 		match ty {
-			SystemType::Xcb  => {
+			SystemType::Xcb => {
 				Ok(SystemConnection::Xcb(xcb::Connection::open()?))
 			}
 		}
 	}
 	
 	#[inline]
-	pub fn create_window(&self) -> Window {
+	#[cfg(target_family = "unix")]
+	fn create_window(&self) -> Window {
 		match self {
 			SystemConnection::Xcb(c) => Window::Xcb(c.create_window())
 		}

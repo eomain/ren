@@ -21,6 +21,7 @@ pub mod display;
 /// All events relating to user input
 pub mod input;
 
+#[cfg(target_family = "unix")]
 pub(crate) mod xcb;
 
 pub type Coord = i16;

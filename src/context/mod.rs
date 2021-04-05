@@ -1,4 +1,5 @@
 
+#[cfg(target_family = "unix")]
 pub mod xcb;
 
 use crate::{Stat, Data, WindowCommand, event::Event};

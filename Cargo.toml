@@ -16,7 +16,7 @@ async-rt = ["async-std"]
 cairo = ["cairo-rs"]
 render = ["cairo-rs"]
 
-[dependencies.xcb]
+[target.'cfg(unix)'.dependencies.xcb]
 version = "0.9"
 features = ["thread"]
 
@@ -29,7 +29,7 @@ version = "1.8.0"
 features = ["unstable"]
 optional = true
 
-[dependencies.cairo-rs]
+[target.'cfg(unix)'.dependencies.cairo-rs]
 version = "0.9.1"
 default-features = false
 features = ["xcb", "png", "svg"]
