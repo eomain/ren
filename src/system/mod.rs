@@ -62,7 +62,7 @@ impl Window {
 	}
 }
 
-pub enum SystemConnection {
+enum SystemConnection {
 	#[cfg(target_family = "unix")]
 	Xcb(xcb::Connection)
 }

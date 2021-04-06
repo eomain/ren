@@ -4,7 +4,7 @@ extern crate xcb;
 use std::sync::Arc;
 use crate::{
 	Stat, Data, WindowCommand, Event, DisplayEvent, KeyEvent,
-	MouseEvent, event
+	MouseEvent, event, event::input::MouseData
 };
 
 const DEFAULT_WINDOW_DEPTH: u8 = 24;
@@ -225,11 +225,13 @@ impl Window {
 				},
 
 				xcb::BUTTON_PRESS => {
-					MouseEvent::Press(event::xcb::button_press(&e)).into()
+					let (pos, button) = event::xcb::button_press(&e);
+					MouseEvent::Press(MouseData::new(button, pos)).into()
 				},
 
 				xcb::BUTTON_RELEASE => {
-					MouseEvent::Release(event::xcb::button_release(&e)).into()
+					let (pos, button) = event::xcb::button_release(&e);
+					MouseEvent::Release(MouseData::new(button, pos)).into()
 				},
 
 				xcb::MOTION_NOTIFY => {
