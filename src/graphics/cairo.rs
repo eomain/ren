@@ -1,7 +1,10 @@
 
-use std::fs::File;
-use std::path::{Path, PathBuf};
-use std::collections::HashMap;
+use std::{
+	fs::File,
+	sync::Arc,
+	path::{Path, PathBuf},
+	collections::HashMap
+};
 use crate::{Token, Data, Body, render::context};
 
 pub use cairo::*;
@@ -45,6 +48,21 @@ fn xcb_surface(connect: &mut crate::Connection,
     let visual: *mut _ = &mut visual.base;
     let visual = unsafe { XCBVisualType::from_raw_none(visual.cast()) };
     XCBSurface::create(&conn, &draw, &visual, width, height).ok()
+}
+
+/// Get cairo image surface
+#[inline]
+pub fn image_surface(data: Vec<u8>, format: context::ImageFormat,
+	width: u32, height: u32) -> Option<ImageSurface> {
+	let format = match format {
+        context::ImageFormat::Bgra8 => Format::ARgb32,
+        _ => return None
+    };
+    let stride = match format.stride_for_width(width) {
+        Err(_) => return None,
+        Ok(stride) => stride
+    };
+    ImageSurface::create_for_data(data, format, width as i32, height as i32, stride).ok()
 }
 
 /// Get cairo png surface
@@ -102,20 +120,19 @@ pub fn render(cx: &context::Context, surface: &Surface, mut state: Option<State>
                         ImageFormat::Bgra8 => Format::ARgb32,
                         _ => continue
                     };
-                    let mut data = match data.try_borrow_mut() {
-                        Err(_) => continue,
-                        Ok(data) => data.to_owned()
-                    };
                     let stride = match format.stride_for_width(*width) {
                         Err(_) => continue,
                         Ok(stride) => stride
                     };
                     let width = *width as i32;
                     let height = *height as i32;
-                    let image = ImageSurface::create_for_data(data, format, width, height, stride);
+                    let image = ImageSurface::create_for_data(data.to_owned(), format, width, height, stride);
                     if let Ok(image) = image {
                         cr.set_source_surface(&image, point.x as f64, point.y as f64);
                     }
+                },
+                ImageType::Surface(image) => {
+                	cr.set_source_surface(&image.0, point.x as f64, point.y as f64);
                 }
             },
             FontSize(size) => cr.set_font_size(*size),

@@ -16,14 +16,28 @@
 //! cx.fill();
 //! ```
 
-use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use super::shape::{Point, Rect};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum ImageType {
     Path(PathBuf),
-    Data(RefCell<Vec<u8>>, ImageFormat, u32, u32)
+    Data(Vec<u8>, ImageFormat, u32, u32),
+    #[cfg(feature = "render")]
+    Surface(crate::graphics::ImageSurface)
+}
+
+impl PartialEq for ImageType {
+	fn eq(&self, other: &Self) -> bool {
+		use ImageType::*;
+		match (self, other) {
+			(Path(a), Path(b)) => a.eq(b),
+			(Data(a1, a2, a3, a4), Data(b1, b2, b3, b4)) => {
+				a1.eq(b1) && a2.eq(b2) && a3.eq(b3) && a4.eq(b4)
+			},
+			_ => false
+		}
+	}
 }
 
 #[non_exhaustive]
@@ -107,7 +121,15 @@ impl Context {
     pub fn image_data<D, P>(&mut self, data: D, format: ImageFormat, point: P,
         width: u32, height: u32)
         where D: AsRef<[u8]>, P: Into<Point> {
-        let data = ImageType::Data(RefCell::new(data.as_ref().into()), format, width, height);
+        let data = ImageType::Data(data.as_ref().into(), format, width, height);
+        self.commands.push(Command::Image(point.into(), data));
+    }
+    
+    #[inline]
+    #[cfg(feature = "render")]
+    pub fn image_surface<P>(&mut self, image: crate::graphics::ImageSurface, point: P)
+        where P: Into<Point> {
+        let data = ImageType::Surface(image);
         self.commands.push(Command::Image(point.into(), data));
     }
 
