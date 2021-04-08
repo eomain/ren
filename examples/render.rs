@@ -18,11 +18,11 @@ fn main()
         Map
     ]);
 
-    // Create surface
-    let surface = surface(&mut connect, &token, (300, 300)).unwrap();
+    // Create a surface for the window
+    let mut surface = Surface::window(&mut connect, &token, (300, 300)).unwrap();
+    // Create a drawing buffer
+    let buffer = Surface::buffer(&mut connect, &token, (300, 300)).unwrap();
 
-    // Maintain the context state
-    let mut state = Some(State::new());
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/rust.png");
 
     loop {
@@ -32,9 +32,6 @@ fn main()
             ren::Event::Terminate => break,
             ren::Event::Display(ren::DisplayEvent::Expose(map)) => {
                 let (w, h) = map.1;
-                // Resize the surface
-                surface.set_size(w as i32, h as i32);
-
                 let mut cx = Context::new();
 
                 // Draw background
@@ -45,9 +42,12 @@ fn main()
                 // Draw image
                 cx.image(path, (0, 0));
                 cx.paint();
+                
+                // Draw to the buffer
+                buffer.render(&cx);
 
-                // Render to surface
-                state = render(&cx, &surface, state);
+                // Render to the window surface
+                surface.copy(&buffer);
 
                 // Update window
                 connect.request(&token, Update);

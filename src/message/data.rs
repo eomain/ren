@@ -1,7 +1,7 @@
 
 extern crate xcb;
 
-use std::fmt::{Debug, Formatter, Error};
+use std::{fmt::{Debug, Formatter, Error}, sync::Arc};
 use super::Body;
 
 /// A type containing status data
@@ -51,20 +51,23 @@ body_from!(WindowData, Data);
 #[non_exhaustive]
 #[derive(Clone)]
 pub enum XcbData {
-    /// Get the raw connection
-    Connection(*mut xcb::ffi::xcb_connection_t),
+    /// Get the connection
+    Connection(Arc<xcb::Connection>),
     /// Get the window ID
     Window(xcb::Window),
     /// Get the visualtype
-    VisualType(Option<xcb::Visualtype>)
+    VisualType(xcb::Visualtype),
+    /// Pixmap
+    Pixmap(xcb::Pixmap)
 }
 
 impl PartialEq for XcbData {
     fn eq(&self, other: &Self) -> bool {
         use XcbData::*;
         match (self, other) {
-            (Connection(a), Connection(b)) => a == b,
+            (Connection(a), Connection(b)) => a.get_raw_conn() == b.get_raw_conn(),
             (Window(a), Window(b)) => a == b,
+            (Pixmap(a), Pixmap(b)) => a == b,
             _ => false
         }
     }
@@ -74,9 +77,10 @@ impl Debug for XcbData {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         use XcbData::*;
         match self {
-            (Connection(c)) => c.fmt(f),
-            (Window(w)) => w.fmt(f),
-            (VisualType(_)) => write!(f, "Visualtype")
+            Connection(c) => c.get_raw_conn().fmt(f),
+            Window(w) => w.fmt(f),
+            VisualType(_) => write!(f, "Visualtype"),
+            Pixmap(p) => p.fmt(f)
         }
     }
 }

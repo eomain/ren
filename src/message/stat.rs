@@ -53,7 +53,9 @@ pub enum XcbStat {
     /// Get the window ID
     Window,
     /// Get the Visualtype
-    VisualType
+    VisualType,
+    /// Create a new Pixmap with `width` and `height`
+    Pixmap(u16, u16)
 }
 
 stat_from!(XcbStat, Xcb);

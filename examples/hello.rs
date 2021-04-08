@@ -18,7 +18,7 @@ fn main()
     ]);
 
     // Create surface
-    let surface = surface(&mut connect, &token, (300, 300)).unwrap();
+    let surface = Surface::window(&mut connect, &token, (640, 480)).unwrap();
 
     loop {
         // Wait for an event
@@ -31,8 +31,6 @@ fn main()
             // Display response
             ren::Event::Display(ren::DisplayEvent::Expose(map)) => {
                 let (w, h) = map.1;
-                // Resize the surface
-                surface.set_size(w as i32, h as i32);
 
                 let mut cx = Context::new();
 
@@ -46,7 +44,7 @@ fn main()
                 cx.text("hello world");
 
                 // Render to surface
-                render(&cx, &surface, None);
+                surface.render(&cx);
 
                 // Update window
                 connect.request(&token, Update);

@@ -1,7 +1,7 @@
 
 extern crate ren;
 
-use ren::{graphics::cairo, WindowCommand::*};
+use ren::{graphics::{cairo, Surface}, WindowCommand::*};
 
 fn main()
 {
@@ -19,8 +19,11 @@ fn main()
     ]);
 
     // Create cairo context from window connection
-    let surface = cairo::surface(&mut connect, &token, (300, 300)).unwrap();
-    let cx = cairo::Context::new(&surface);
+    let surface = Surface::window(&mut connect, &token, (300, 300)).unwrap();
+    let wx = surface.create_cairo_context();
+    // Create cairo drawing buffer
+    let buffer = Surface::buffer(&mut connect, &token, (300, 300)).unwrap();
+    let cx = buffer.create_cairo_context();
 
     // Create cairo image surface
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/rust.png");
@@ -33,17 +36,17 @@ fn main()
             ren::Event::Terminate => break,
             ren::Event::Display(ren::DisplayEvent::Expose(map)) => {
                 let (w, h) = map.1;
-                // Resize the surface
-                surface.set_size(w as i32, h as i32);
-
-                // Draw background
+                // Draw background to buffer
                 cx.set_source_rgba(1.0, 1.0, 1.0, 1.0);
                 cx.rectangle(0.0, 0.0, w as f64, h as f64);
                 cx.fill();
 
-                // Draw image
+                // Draw image to buffer
                 cx.set_source_surface(&image, 0.0, 0.0);
                 cx.paint();
+                // Draw buffer to window
+                wx.set_source_surface(buffer.as_cairo_surface(), 0.0, 0.0);
+                wx.paint();
 
                 // Update window
                 connect.request(&token, Update);

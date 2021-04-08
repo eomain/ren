@@ -143,6 +143,13 @@ impl Window {
 		self.property(PROP_MODE_REPLACE, ATOM_WM_ICON_NAME, ATOM_STRING, name.as_bytes());
 	}
 
+	fn create_pixmap(&self, width: u16, height: u16) -> Option<xcb::Pixmap> {
+		let pixmap = self.id();
+		let depth = self.stat_depth()?;
+		xcb::create_pixmap(&self.connection, depth, pixmap, self.window, width, height);
+		Some(pixmap)
+	}
+
 	fn x(&self, x: u32) {
 		self.configure(&[(
 			xcb::CONFIG_WINDOW_X as u16, x
@@ -299,9 +306,10 @@ impl super::WindowContext for Window {
 			},
 			Stat::Xcb(status) => {
 				Some((match status {
-					XcbStat::Connection => XcbData::Connection(self.connection.get_raw_conn()),
+					XcbStat::Connection => XcbData::Connection(Arc::clone(&self.connection)),
 					XcbStat::Window => XcbData::Window(self.window),
-					XcbStat::VisualType => XcbData::VisualType(self.visual)
+					XcbStat::VisualType => XcbData::VisualType(self.visual?),
+					XcbStat::Pixmap(w, h) => XcbData::Pixmap(self.create_pixmap(w, h)?)
 				}).into())
 			},
 			_ => None

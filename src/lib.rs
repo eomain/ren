@@ -44,7 +44,9 @@ mod session;
 mod connection;
 
 pub mod event;
+#[cfg(any(feature = "render", feature = "cairo"))]
 pub mod graphics;
+#[cfg(feature = "render")]
 pub mod render;
 pub mod message;
 

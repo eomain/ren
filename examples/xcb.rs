@@ -40,12 +40,12 @@ fn main()
     };
 
     let mut visual = match connect.request(&token, VisualType).unwrap().take_body() {
-        Body::Data(Data::Xcb(XcbData::VisualType(v))) => v.unwrap(),
+        Body::Data(Data::Xcb(XcbData::VisualType(v))) => v,
         _ => unreachable!()
     };
 
     println!("XCB Id: {:?}", id);
-    println!("XCB Connection: {:?}", conn);
+    println!("XCB Connection: {:?}", conn.get_raw_conn());
     println!("XCB Visual Id: {}", visual.visual_id());
 
     loop {
