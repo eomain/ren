@@ -256,6 +256,11 @@ impl Window {
 				xcb::FOCUS_IN => DisplayEvent::FocusIn.into(),
 
 				xcb::FOCUS_OUT => DisplayEvent::FocusOut.into(),
+				
+				xcb::CONFIGURE_NOTIFY => {
+					let event = unsafe { xcb::cast_event::<xcb::ConfigureNotifyEvent>(&e) };
+					DisplayEvent::Resize((event.width(), event.height())).into()
+				},
 
 				xcb::CLIENT_MESSAGE => {
 					let event = unsafe { xcb::cast_event::<xcb::ClientMessageEvent>(&e) };

@@ -51,7 +51,9 @@ pub enum DisplayEvent {
     /// The window gained focus
     FocusIn,
     /// The window lost focus
-    FocusOut
+    FocusOut,
+    /// The window dimensions changed
+    Resize(Dimension)
 }
 
 event_from!(DisplayEvent, Display);
