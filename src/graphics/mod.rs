@@ -1,6 +1,6 @@
 //! Graphics rendering api
 
-use std::sync::Arc;
+use std::{fmt, sync::Arc};
 use crate::{Token, Connection};
 
 #[cfg(all(feature = "cairo", feature = "render"))]
@@ -23,12 +23,12 @@ pub struct Surface(SurfaceType);
 
 impl Surface {
 	/// Get a window surface from a `Connection`
-	pub fn window(connect: &mut Connection, window: &Token, dimensions: (i32, i32)) -> Option<Self> {
+	pub fn window(connect: &Connection, window: &Token, dimensions: (i32, i32)) -> Option<Self> {
 		cairo::surface(connect, window, dimensions).map(|s| Surface{ 0: SurfaceType::Window(s) })
 	}
 	
 	/// Get a buffer surface from a `Connection`
-	pub fn buffer(connect: &mut Connection, window: &Token, dimensions: (i32, i32)) -> Option<Self> {
+	pub fn buffer(connect: &Connection, window: &Token, dimensions: (i32, i32)) -> Option<Self> {
 		cairo::surface_buffer(connect, window, dimensions).map(|s| Surface{ 0: SurfaceType::Buffer(s.0, s.1) })
 	}
 	
@@ -36,7 +36,7 @@ impl Surface {
 	pub fn render(&self, cx: &context::Context) {
 		use SurfaceType::*;
 		match &self.0 {
-			Window(s) | Buffer(s, _) => { cairo::render(cx, s, None); }
+			Window(s) | Buffer(s, _) => { cairo::render(cx, None, s); }
 		}
 	}
 	
@@ -74,6 +74,13 @@ impl Surface {
 			_ => false
 		}
 	}
+	
+	fn inner_surface(&self) -> &cairo::Surface {
+		use SurfaceType::*;
+		match &self.0 {
+			Window(s) | Buffer(s, _) => s
+		}
+	}
 }
 
 #[cfg(feature = "cairo")]
@@ -97,11 +104,20 @@ impl Surface {
 	}
 }
 
+impl fmt::Debug for Surface {
+	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+		write!(f, "Surface")
+	}
+}
+
+unsafe impl Send for Surface {}
+unsafe impl Sync for Surface {}
+
 /// A surface for drawing an image. This uses an `Arc` internally
 /// so is only as expensive to clone as an `Arc`
 #[derive(Clone, Debug)]
 #[cfg(feature = "render")]
-pub struct ImageSurface(Arc<cairo::ImageSurface>);
+pub struct ImageSurface(Arc<cairo::ImageSurface>, u32, u32);
 
 #[cfg(feature = "render")]
 unsafe impl Send for ImageSurface {}
@@ -113,7 +129,28 @@ impl ImageSurface {
 	/// Get an image surface from image data
 	pub fn from(data: Vec<u8>, format: context::ImageFormat,
 		width: u32, height: u32) -> Option<Self> {
-		cairo::image_surface(data, format, width, height).map(|i| ImageSurface { 0: Arc::new(i) })
+		cairo::image_surface(data, format, width, height).map(|i| ImageSurface { 0: Arc::new(i), 1: width, 2: height })
+	}
+	
+	/// Get the image width
+	pub fn width(&self) -> u32 {
+		self.1
+	}
+	
+	/// Get the image height
+	pub fn height(&self) -> u32 {
+		self.2
+	}
+	
+	/// Get the image width and height
+	pub fn dimensions(&self) -> (u32, u32) {
+		(self.1, self.2)
+	}
+}
+
+impl std::hash::Hash for ImageSurface {
+	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+		Arc::as_ptr(&self.0).hash(state)
 	}
 }
 
@@ -122,3 +159,5 @@ impl PartialEq for ImageSurface {
 		Arc::ptr_eq(&self.0, &other.0)
 	}
 }
+
+impl Eq for ImageSurface {}

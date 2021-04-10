@@ -1,10 +1,5 @@
 
-use std::{
-	fs::File,
-	sync::Arc,
-	path::{Path, PathBuf},
-	collections::HashMap
-};
+use std::{fs::File, sync::Arc, path::Path, collections::HashMap};
 use crate::{Token, Data, Body, render::context};
 
 pub use cairo::*;
@@ -15,7 +10,7 @@ pub type Surface = XCBSurface;
 
 /// Get a cairo window surface from a `Connection`
 #[cfg(target_family = "unix")]
-pub(crate) fn surface(connect: &mut crate::Connection, window: &Token,
+pub(crate) fn surface(connect: &crate::Connection, window: &Token,
 	(width, height): (i32, i32)) -> Option<Surface>
 {
 	xcb_surface(connect, window, width, height)
@@ -23,7 +18,7 @@ pub(crate) fn surface(connect: &mut crate::Connection, window: &Token,
 
 /// Get a cairo surface from a `Connection`
 #[cfg(target_family = "unix")]
-pub(crate) fn surface_buffer(connect: &mut crate::Connection, window: &Token,
+pub(crate) fn surface_buffer(connect: &crate::Connection, window: &Token,
 	(width, height): (i32, i32)) -> Option<(Surface, SurfaceContext)>
 {
 	xcb_pixmap_surface(connect, window, width, height)
@@ -31,7 +26,7 @@ pub(crate) fn surface_buffer(connect: &mut crate::Connection, window: &Token,
 
 /// Create cairo xcb surface
 #[cfg(target_family = "unix")]
-fn xcb_surface_create(connect: &mut crate::Connection, token: &Token, id: u32,
+fn xcb_surface_create(connect: &crate::Connection, token: &Token, id: u32,
 	width: i32, height: i32) -> Option<Surface> {
 	use crate::{data::XcbData, stat::XcbStat::*};
 	
@@ -54,7 +49,7 @@ fn xcb_surface_create(connect: &mut crate::Connection, token: &Token, id: u32,
 
 /// Get cairo xcb surface from a `Connection`
 #[cfg(target_family = "unix")]
-fn xcb_surface(connect: &mut crate::Connection,
+fn xcb_surface(connect: &crate::Connection,
 		   token: &Token, width: i32, height: i32) -> Option<Surface>
 {
 	use crate::{data::XcbData, stat::XcbStat::*};
@@ -84,7 +79,7 @@ impl Drop for SurfaceContext {
 
 /// Get cairo xcb (pixmap) surface from a `Connection`
 #[cfg(target_family = "unix")]
-fn xcb_pixmap_surface(connect: &mut crate::Connection,
+fn xcb_pixmap_surface(connect: &crate::Connection,
 		   token: &Token, width: i32, height: i32) -> Option<(Surface, SurfaceContext)>
 {
 	use crate::{data::XcbData, stat::XcbStat::*};
@@ -127,25 +122,14 @@ pub fn png_surface<P>(path: P) -> Option<ImageSurface>
 }
 
 #[cfg(feature = "render")]
-pub(crate) struct State {
-	images: HashMap<PathBuf, ImageSurface>
-}
-
-#[cfg(feature = "render")]
-impl State {
-	pub fn new() -> Self {
-		Self {
-			images: HashMap::new()
-		}
-	}
-}
-
-#[cfg(feature = "render")]
-pub(crate) fn render(cx: &context::Context, surface: &Surface, mut state: Option<State>) -> Option<State>
+pub(crate) fn render(cx: &context::Context, cr: Option<cairo::Context>, surface: &Surface) -> cairo::Context
 {
 	use context::{Command, ImageType, ImageFormat};
 
-	let cr = cairo::Context::new(&surface);
+	let mut cr = match cr {
+		None => cairo::Context::new(&surface),
+		Some(cr) => cr
+	};
 
 	use Command::*;
 	for command in cx.commands() {
@@ -155,19 +139,9 @@ pub(crate) fn render(cx: &context::Context, surface: &Surface, mut state: Option
 			Text(text) => cr.show_text(text),
 			Image(point, ty) => match ty {
 				ImageType::Path(path) => {
-					if let Some(state) = state.as_ref() {
-						if let Some(image) = state.images.get(path) {
-							cr.set_source_surface(&image, point.x as f64, point.y as f64);
-							continue;
-						}
-					}
-
 					if let Some("png") = path.extension().map(|p| p.to_str()).flatten() {
 						if let Some(png) = png_surface(path) {
 							cr.set_source_surface(&png, point.x as f64, point.y as f64);
-							if let Some(state) = state.as_mut() {
-								state.images.insert(path.to_path_buf(), png);
-							}
 						}
 					}
 				},
@@ -187,7 +161,11 @@ pub(crate) fn render(cx: &context::Context, surface: &Surface, mut state: Option
 						cr.set_source_surface(&image, point.x as f64, point.y as f64);
 					}
 				},
-				ImageType::Surface(image) => {
+				ImageType::Surface(surface, w, h) => {
+					let (x, y) = (point.x as f64, point.y as f64);
+					cr.set_source_surface(surface.inner_surface(), x, y);
+				},
+				ImageType::ImageSurface(image) => {
 					cr.set_source_surface(&image.0, point.x as f64, point.y as f64);
 				}
 			},
@@ -223,9 +201,13 @@ pub(crate) fn render(cx: &context::Context, surface: &Surface, mut state: Option
 			Stroke => cr.stroke(),
 			Fill => cr.fill(),
 			Paint => cr.paint(),
-			_ => ()
+			State(cx) => {
+				cr.save();
+				cr = render(cx, Some(cr), surface);
+				cr.restore();
+			}
 		}
 	}
-
-	state
+	
+	cr
 }
