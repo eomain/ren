@@ -13,6 +13,30 @@ mod cairo;
 #[cfg(feature = "render")]
 pub use crate::render::{context, context::Context};
 
+/// Text extent width and height
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct TextExtent(usize, usize);
+
+impl TextExtent {
+	/// Get width of the text
+	#[inline]
+	pub fn width(&self) -> usize {
+		self.0
+	}
+	
+	/// Get the height of the text
+	#[inline]
+	pub fn height(&self) -> usize {
+		self.1
+	}
+	
+	/// Get the width and height of the text
+	#[inline]
+	pub fn dimensions(&self) -> (usize, usize) {
+		(self.0, self.1)
+	}
+}
+
 enum SurfaceType {
 	Window(cairo::Surface),
 	Buffer(cairo::Surface, cairo::SurfaceContext)
@@ -33,7 +57,7 @@ impl Surface {
 	}
 	
 	/// Render graphics to surface using context
-	pub fn render(&self, cx: &context::Context) {
+	pub fn render(&self, cx: &Context) {
 		use SurfaceType::*;
 		match &self.0 {
 			Window(s) | Buffer(s, _) => { cairo::render(cx, None, s); }
@@ -47,7 +71,7 @@ impl Surface {
 			(Window(s1), Buffer(s2, _)) |
 			(Buffer(s1, _), Window(s2)) |
 			(Buffer(s1, _), Buffer(s2, _)) => {
-				let cr = cairo::Context::new(&s1);
+				let cr = cairo::Context::new(s1);
 				cr.set_source_surface(s2, 0.0, 0.0);
 				cr.paint();
 			},
@@ -66,6 +90,22 @@ impl Surface {
 		}
 	}
 	
+	/// Get text extent
+	pub fn text_extent<T>(&self, text: T, cx: Option<&Context>) -> TextExtent
+		where T: AsRef<str> {
+		use SurfaceType::*;
+		match &self.0 {
+			Window(s) | Buffer(s, _) => {
+				let mut cr = cairo::Context::new(s);
+				if let Some(cx) = cx {
+					cr = cairo::render(cx, Some(cr), s);
+				}
+				let e = cr.text_extents(text.as_ref());
+				TextExtent { 0: e.width as usize, 1: e.height as usize }
+			}
+		}
+	}
+	
 	/// Check if this is a window surface
 	pub fn is_window_surface(&self) -> bool {
 		use SurfaceType::*;
@@ -81,6 +121,7 @@ impl Surface {
 			Window(s) | Buffer(s, _) => s
 		}
 	}
+	
 }
 
 #[cfg(feature = "cairo")]
