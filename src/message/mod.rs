@@ -118,9 +118,15 @@ impl From<WindowCommand> for Body {
 /// Error message
 #[derive(Debug, Clone, PartialEq)]
 pub enum Error {
+    /// Message type error
     Type,
+    /// Supplied an invalid token
     Token,
+    /// Unable to access the session
+    Session,
+    /// No event occurred
     NoEvent,
+    /// Custom error message
     Custom(String)
 }
 
@@ -131,6 +137,7 @@ impl From<&Error> for String {
         match e {
             Type => "specified an unexpected message type".into(),
             Token => "supplied an undefined token".into(),
+            Session => "session error".into(),
             NoEvent => "no event".into(),
             Custom(s) => s.into()
         }
@@ -148,7 +155,7 @@ impl std::fmt::Display for Error {
 pub type Status = Result<Message, Error>;
 
 /// A message token used to refer to a session
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Token {
     uuid: Uuid
 }
