@@ -82,7 +82,7 @@ impl SystemConnection {
 	#[cfg(target_family = "unix")]
 	fn create_window(&self) -> Window {
 		match self {
-			SystemConnection::Xcb(c) => Window::Xcb(c.create_window())
+			SystemConnection::Xcb(c) => Window::Xcb(c.into())
 		}
 	}
 }

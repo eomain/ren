@@ -9,24 +9,16 @@ use crate::{
 
 const DEFAULT_WINDOW_DEPTH: u8 = 24;
 
-pub struct Connection {
-	connection: Arc<xcb::Connection>,
-	preference: i32,
-	visual: Option<xcb::Visualtype>,
-	delete: Option<xcb::Atom>
+#[derive(Clone)]
+pub struct Screen {
+	width: u16,
+	height: u16,
+	depth: u8,
+	visual: Option<xcb::Visualtype>
 }
 
-impl Connection {
-	pub fn open() -> Result<Self, Option<super::ConnectionError>> {
-		let (connect, num) = match xcb::Connection::connect(None) {
-			Err(_) => return Err(None),
-			Ok((c, n)) => (c, n)
-		};
-		let setup = connect.get_setup();
-		let screen = match setup.roots().nth(num as usize) {
-			None => return Err(None),
-			Some(screen) => screen
-		};
+impl Screen {
+	fn from(screen: &xcb::Screen) -> Self {
 		let depths = screen.allowed_depths();
 		let mut depth = None;
 		for d in depths {
@@ -45,7 +37,37 @@ impl Connection {
 				}
 			}
 		}
+		
+		Self {
+			width: screen.width_in_pixels(),
+			height: screen.height_in_pixels(),
+			depth: screen.root_depth(),
+			visual
+		}
+	}
+}
+
+pub struct Connection {
+	connection: Arc<xcb::Connection>,
+	preference: i32,
+	screen: Screen,
+	delete: Option<xcb::Atom>
+}
+
+impl Connection {
+	pub fn open() -> Result<Self, Option<super::ConnectionError>> {
+		let (connect, num) = match xcb::Connection::connect(None) {
+			Err(_) => return Err(None),
+			Ok((c, n)) => (c, n)
+		};
+		let setup = connect.get_setup();
+		let screen = match setup.roots().nth(num as usize) {
+			None => return Err(None),
+			Some(screen) => screen
+		};
+		
 		let root = screen.root();
+		let screen = Screen::from(&screen);
 
 		let cookie = xcb::intern_atom(&connect, true, "WM_PROTOCOLS");
 		cookie.get_reply();
@@ -55,7 +77,7 @@ impl Connection {
 		Ok(Self {
 			connection: Arc::new(connect),
 			preference: num,
-			visual,
+			screen,
 			delete
 		})
 	}
@@ -63,35 +85,25 @@ impl Connection {
 	pub fn flush(&self) {
 		self.connection.flush();
 	}
-	
-	pub fn create_window(&self) -> Window {
-		let setup = self.connection.get_setup();
-		let screen = setup.roots().nth(self.preference as usize).unwrap();
-		let window = window(&self.connection, &screen);
-		Window::new(window, self.connection.clone(), self.visual, self.delete)
-	}
 }
 
 pub struct Window {
 	window: xcb::Window,
 	connection: Arc<xcb::Connection>,
-	visual: Option<xcb::Visualtype>,
+	screen: Screen,
 	delete: Option<xcb::Atom>
 }
 
 impl Window {
 	fn new(window: xcb::Window, connection: Arc<xcb::Connection>,
-		visual: Option<xcb::Visualtype>, delete: Option<xcb::Atom>) -> Self {
+		screen: Screen, delete: Option<xcb::Atom>) -> Self {
 		Self {
 			window,
 			connection,
-			visual,
+			screen,
 			delete
 		}
 	}
-}
-
-impl Window {
 
 	pub fn id(&self) -> u32 {
 		self.connection.generate_id()
@@ -313,7 +325,7 @@ impl super::WindowContext for Window {
 				Some((match status {
 					XcbStat::Connection => XcbData::Connection(Arc::clone(&self.connection)),
 					XcbStat::Window => XcbData::Window(self.window),
-					XcbStat::VisualType => XcbData::VisualType(self.visual?),
+					XcbStat::VisualType => XcbData::VisualType(self.screen.visual?),
 					XcbStat::Pixmap(w, h) => XcbData::Pixmap(self.create_pixmap(w, h)?)
 				}).into())
 			},
@@ -333,12 +345,21 @@ impl super::WindowContext for Window {
 			StackAbove => self.stack_above(),
 			StackBelow => self.stack_below(),
 			Clear => self.clear(),
-			Update => { self.connection.flush(); }
+			Update => { self.update(); }
 		}
 	}
 	
 	fn update(&self) {
 		self.connection.flush();
+	}
+}
+
+impl From<&Connection> for Window {
+	fn from(c: &Connection) -> Self {
+		let setup = c.connection.get_setup();
+		let screen = setup.roots().nth(c.preference as usize).unwrap();
+		let window = window(&c.connection, &screen);
+		Window::new(window, c.connection.clone(), c.screen.clone(), c.delete)
 	}
 }
 
@@ -387,7 +408,7 @@ fn window(conn: &xcb::Connection, screen: &xcb::Screen) -> u32
 
 	let (x, y) = (0, 0);
 	let (width, height) = (1, 1);
-	let border = 10;
+	let border = 0;
 
 	xcb::create_window(
 		conn,
@@ -428,7 +449,7 @@ mod tests {
 	#[test]
 	fn xcb_connection() {
 		let connect = Connection::open().unwrap();
-		let window = connect.create_window();
+		let window = Window::from(&connect);
 		window.resize(150, 150);
 		window.map();
 		connect.flush();
