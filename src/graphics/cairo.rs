@@ -200,7 +200,7 @@ pub(crate) fn render(cx: &context::Context, cr: Option<cairo::Context>, surface:
 			Translate(x, y) => cr.translate(*x, *y),
 			Stroke => cr.stroke(),
 			Fill => cr.fill(),
-			Paint => cr.paint(),
+			Paint(alpha) => cr.paint_with_alpha(*alpha),
 			State(cx) => {
 				cr.save();
 				cr = render(cx, Some(cr), surface);

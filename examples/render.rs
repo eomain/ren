@@ -41,7 +41,7 @@ fn main()
 
                 // Draw image
                 cx.image(path, (0, 0));
-                cx.paint();
+                cx.paint(0.5);
                 
                 // Draw to the buffer
                 buffer.render(&cx);

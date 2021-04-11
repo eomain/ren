@@ -77,7 +77,7 @@ pub enum Command {
 	Translate(f64, f64),
 	Stroke,
 	Fill,
-	Paint,
+	Paint(f64),
 	State(Box<Context>)
 }
 
@@ -224,8 +224,8 @@ impl Context {
 	}
 
 	#[inline]
-	pub fn paint(&mut self) {
-		self.commands.push(Command::Paint);
+	pub fn paint(&mut self, alpha: f64) {
+		self.commands.push(Command::Paint(alpha));
 	}
 	
 	#[inline]
@@ -266,7 +266,7 @@ mod tests {
 		cx.fill();
 		cx.image("image.png", (0, 0));
 		cx.image_data(&[0x00, 0xFF, 0x55, 0x00], ImageFormat::Rgba8, (0, 0), 20, 20);
-		cx.paint();
+		cx.paint(1.0);
 
 		for command in cx.commands() {
 			println!("{:?}", command);
