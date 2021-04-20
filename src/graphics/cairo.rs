@@ -173,6 +173,7 @@ pub(crate) fn render(cx: &context::Context, cr: Option<cairo::Context>, surface:
 			Move(point) => cr.move_to(point.x as f64, point.y as f64),
 			RelMove(point) => cr.rel_move_to(point.x as f64, point.y as f64),
 			Line(point) => cr.line_to(point.x as f64, point.y as f64),
+			LineSize(size) => cr.set_line_width(*size as f64),
 			RelLine(point) => cr.rel_line_to(point.x as f64, point.y as f64),
 			Rect(rect) => {
 				let (x, y) = (rect.point.x, rect.point.y);

@@ -67,6 +67,7 @@ pub enum Command {
 	Move(Point),
 	RelMove(Point),
 	Line(Point),
+	LineSize(u32),
 	RelLine(Point),
 	Rect(Rect),
 	RelRect(u32, u32),
@@ -166,6 +167,11 @@ impl Context {
 	pub fn line_to<P>(&mut self, point: P)
 		where P: Into<Point> {
 		self.commands.push(Command::Line(point.into()));
+	}
+
+	#[inline]
+	pub fn line_size(&mut self, size: u32) {
+		self.commands.push(Command::LineSize(size));
 	}
 
 	#[inline]

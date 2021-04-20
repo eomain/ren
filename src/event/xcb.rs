@@ -79,7 +79,7 @@ fn button(code: xcb::Button) -> MouseInput {
 		3 => MouseInput::Right,
 		4 => MouseInput::ScrollUp,
 		5 => MouseInput::ScrollDown,
-		_ => MouseInput::Unknown(code)
+		_ => MouseInput::Unknown(Some(code))
 	}
 }
 

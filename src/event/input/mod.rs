@@ -129,7 +129,7 @@ pub enum MouseInput {
 	/// Mouse scroll down
 	ScrollDown,
 	/// An unknown button
-	Unknown(u8)
+	Unknown(Option<u8>)
 }
 
 /// Mouse event data

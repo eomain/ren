@@ -64,6 +64,7 @@ impl Default for Body {
 
 /// A `Message` command. Found within the
 /// body of the message.
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command {
     /// A window command
