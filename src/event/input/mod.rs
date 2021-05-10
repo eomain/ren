@@ -20,6 +20,7 @@ impl KeyCode {
 	}
 
 	/// Map the keycode to a keyboard character map
+	#[allow(dead_code)]
 	fn map(&self) -> KeyMap {
 		unimplemented!()
 	}
@@ -43,16 +44,16 @@ pub enum KeyMap {
 	F11,
 	F12,
 
-	NUM_0,
-	NUM_1,
-	NUM_2,
-	NUM_3,
-	NUM_4,
-	NUM_5,
-	NUM_6,
-	NUM_7,
-	NUM_8,
-	NUM_9,
+	Num0,
+	Num1,
+	Num2,
+	Num3,
+	Num4,
+	Num5,
+	Num6,
+	Num7,
+	Num8,
+	Num9,
 
 	Shift,
 	Caps,

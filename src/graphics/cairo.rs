@@ -161,7 +161,7 @@ pub(crate) fn render(cx: &context::Context, cr: Option<cairo::Context>, surface:
 						cr.set_source_surface(&image, point.x as f64, point.y as f64);
 					}
 				},
-				ImageType::Surface(surface, w, h) => {
+				ImageType::Surface(surface) => {
 					let (x, y) = (point.x as f64, point.y as f64);
 					cr.set_source_surface(surface.inner_surface(), x, y);
 				},
@@ -201,6 +201,7 @@ pub(crate) fn render(cx: &context::Context, cr: Option<cairo::Context>, surface:
 			Translate(x, y) => cr.translate(*x, *y),
 			Stroke => cr.stroke(),
 			Fill => cr.fill(),
+			Clip => cr.clip(),
 			Paint(alpha) => cr.paint_with_alpha(*alpha),
 			State(cx) => {
 				cr.save();

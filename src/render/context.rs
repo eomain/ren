@@ -24,7 +24,7 @@ pub enum ImageType {
 	Path(PathBuf),
 	Data(Vec<u8>, ImageFormat, u32, u32),
 	#[cfg(feature = "render")]
-	Surface(Arc<crate::graphics::Surface>, u32, u32),
+	Surface(Arc<crate::graphics::Surface>),
 	#[cfg(feature = "render")]
 	ImageSurface(crate::graphics::ImageSurface)
 }
@@ -78,6 +78,7 @@ pub enum Command {
 	Translate(f64, f64),
 	Stroke,
 	Fill,
+	Clip,
 	Paint(f64),
 	State(Box<Context>)
 }
@@ -99,6 +100,12 @@ impl Context {
 		&self.commands
 	}
 
+	pub fn append(&mut self, other: &mut Self) {
+		self.commands.append(&mut other.commands);
+	}
+}
+
+impl Context {
 	#[inline]
 	pub fn rgb(&mut self, red: f64, green: f64, blue: f64) {
 		self.commands.push(Command::Rgb(red, green, blue));
@@ -131,10 +138,9 @@ impl Context {
 	
 	#[inline]
 	#[cfg(feature = "render")]
-	pub fn surface<P>(&mut self, surface: Arc<crate::graphics::Surface>, point: P,
-		width: u32, height: u32)
+	pub fn surface<P>(&mut self, surface: Arc<crate::graphics::Surface>, point: P)
 		where P: Into<Point> {
-		let data = ImageType::Surface(surface, width, height);
+		let data = ImageType::Surface(surface);
 		self.commands.push(Command::Image(point.into(), data));
 	}
 	
@@ -227,6 +233,11 @@ impl Context {
 	#[inline]
 	pub fn fill(&mut self) {
 		self.commands.push(Command::Fill);
+	}
+
+	#[inline]
+	pub fn clip(&mut self) {
+		self.commands.push(Command::Clip);
 	}
 
 	#[inline]

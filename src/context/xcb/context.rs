@@ -1,4 +1,7 @@
 
+#![allow(dead_code)]
+#![allow(unused_must_use)]
+
 extern crate xcb;
 
 use std::sync::Arc;
@@ -6,8 +9,6 @@ use crate::{
 	Stat, Data, WindowCommand, Event, DisplayEvent, KeyEvent,
 	MouseEvent, event, event::input::MouseData
 };
-
-const DEFAULT_WINDOW_DEPTH: u8 = 24;
 
 #[derive(Clone)]
 pub struct Screen {
@@ -19,29 +20,18 @@ pub struct Screen {
 
 impl Screen {
 	fn from(screen: &xcb::Screen) -> Self {
-		let depths = screen.allowed_depths();
-		let mut depth = None;
-		for d in depths {
-			match d.depth() {
-				DEFAULT_WINDOW_DEPTH => { depth = Some(d); },
-				_ => ()
-			}
-		}
-		let visuals = depth.map(|d| d.visuals());
-		let mut visual = None;
-		if let Some(visuals) = visuals {
-			for v in visuals {
-				if v.class() as u32 == xcb::VISUAL_CLASS_TRUE_COLOR {
-					visual = Some(v);
-					break;
-				}
-			}
-		}
+		let root_depth = screen.root_depth();
+		let depth = screen.allowed_depths().find(|d| d.depth() == root_depth);
+		
+		let id = screen.root_visual();
+		let visual = depth.map(|d| d.visuals())
+			.map(|mut v| v.find(|v| v.visual_id() == id))
+			.flatten();
 		
 		Self {
 			width: screen.width_in_pixels(),
 			height: screen.height_in_pixels(),
-			depth: screen.root_depth(),
+			depth: root_depth,
 			visual
 		}
 	}
@@ -63,11 +53,8 @@ impl Connection {
 		let setup = connect.get_setup();
 		let screen = match setup.roots().nth(num as usize) {
 			None => return Err(None),
-			Some(screen) => screen
+			Some(screen) => Screen::from(&screen)
 		};
-		
-		let root = screen.root();
-		let screen = Screen::from(&screen);
 
 		let cookie = xcb::intern_atom(&connect, true, "WM_PROTOCOLS");
 		cookie.get_reply();
@@ -84,6 +71,14 @@ impl Connection {
 	
 	pub fn flush(&self) {
 		self.connection.flush();
+	}
+}
+
+impl std::ops::Deref for Connection {
+	type Target = xcb::Connection;
+	
+	fn deref(&self) -> &Self::Target {
+		&self.connection
 	}
 }
 
@@ -105,7 +100,7 @@ impl Window {
 		}
 	}
 
-	pub fn id(&self) -> u32 {
+	fn id(&self) -> u32 {
 		self.connection.generate_id()
 	}
 
@@ -133,8 +128,8 @@ impl Window {
 		xcb::get_geometry(&self.connection, self.window).get_reply().ok()
 	}
 
-	fn stat_position(&self) -> Option<(u32, u32)> {
-		self.geometry().map(|g| (g.x() as u32, g.y() as u32))
+	fn stat_position(&self) -> Option<(i32, i32)> {
+		self.geometry().map(|g| (g.x() as i32, g.y() as i32))
 	}
 
 	fn stat_dimension(&self) -> Option<(u32, u32)> {
@@ -328,8 +323,7 @@ impl super::WindowContext for Window {
 					XcbStat::VisualType => XcbData::VisualType(self.screen.visual?),
 					XcbStat::Pixmap(w, h) => XcbData::Pixmap(self.create_pixmap(w, h)?)
 				}).into())
-			},
-			_ => None
+			}
 		}
 	}
 
@@ -358,8 +352,8 @@ impl From<&Connection> for Window {
 	fn from(c: &Connection) -> Self {
 		let setup = c.connection.get_setup();
 		let screen = setup.roots().nth(c.preference as usize).unwrap();
-		let window = window(&c.connection, &screen);
-		Window::new(window, c.connection.clone(), c.screen.clone(), c.delete)
+		let window = window(&c, &screen);
+		Self::new(window, c.connection.clone(), c.screen.clone(), c.delete)
 	}
 }
 
@@ -398,12 +392,19 @@ fn event_type(e: &xcb::base::GenericEvent) -> u8
 	e.response_type() & !0x080
 }
 
-fn window(conn: &xcb::Connection, screen: &xcb::Screen) -> u32
+fn window(conn: &Connection, screen: &xcb::Screen) -> u32
 {
 	let id = conn.generate_id();
 
+	let root = screen.root();
+	let visual = screen.root_visual();
+	let cmid = conn.generate_id();
+	xcb::create_colormap(conn, xcb::COLORMAP_ALLOC_NONE as u8, cmid, root, visual);
+
 	let values = [
-		(xcb::CW_EVENT_MASK, EVENT_MASK)
+		(xcb::CW_EVENT_MASK, EVENT_MASK),
+		(xcb::CW_BORDER_PIXEL, 0),
+		(xcb::CW_COLORMAP, cmid)
 	];
 
 	let (x, y) = (0, 0);
@@ -414,30 +415,15 @@ fn window(conn: &xcb::Connection, screen: &xcb::Screen) -> u32
 		conn,
 		xcb::COPY_FROM_PARENT as u8,
 		id,
-		screen.root(),
+		root,
 		x as i16,
 		y as i16,
 		width as u16,
 		height as u16,
 		border,
 		xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
-		screen.root_visual(),
+		visual,
 		&values
-	);
-	id
-}
-
-#[inline]
-fn gc(conn: &xcb::Connection, window: xcb::Window, color: u32) -> u32
-{
-	let id = conn.generate_id();
-	xcb::create_gc(
-		conn, id, window, &[
-			(xcb::GC_FOREGROUND,
-			 color),
-			(xcb::GC_GRAPHICS_EXPOSURES,
-			 0)
-		]
 	);
 	id
 }

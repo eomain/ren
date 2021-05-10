@@ -16,6 +16,7 @@ pub fn expose(event: &xcb::GenericEvent) -> Map
 }
 
 #[inline]
+#[allow(dead_code)]
 fn keymap(code: xcb::ffi::xcb_keycode_t) -> KeyMap
 {
 	/* TODO */
@@ -34,16 +35,16 @@ fn keymap(code: xcb::ffi::xcb_keycode_t) -> KeyMap
 		76 => F10,
 		95 => F11,
 		96 => F12,
-		19 => NUM_0,
-		10 => NUM_1,
-		11 => NUM_2,
-		12 => NUM_3,
-		13 => NUM_4,
-		14 => NUM_5,
-		15 => NUM_6,
-		16 => NUM_7,
-		17 => NUM_8,
-		18 => NUM_9,
+		19 => Num0,
+		10 => Num1,
+		11 => Num2,
+		12 => Num3,
+		13 => Num4,
+		14 => Num5,
+		15 => Num6,
+		16 => Num7,
+		17 => Num8,
+		18 => Num9,
 		50 | 62 => Shift,
 		66 => Caps,
 		111 => Up,

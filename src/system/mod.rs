@@ -69,8 +69,7 @@ enum SystemConnection {
 
 impl SystemConnection {
 	#[cfg(target_family = "unix")]
-	fn new(ty: SystemType) -> Result<Self, Option<ConnectionError>>
-	{
+	fn new(ty: SystemType) -> Result<Self, Option<ConnectionError>> {
 		match ty {
 			SystemType::Xcb => {
 				Ok(SystemConnection::Xcb(xcb::Connection::open()?))

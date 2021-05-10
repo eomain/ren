@@ -37,7 +37,7 @@ macro_rules! data_from {
 #[derive(Debug, Clone, PartialEq)]
 pub enum WindowData {
     /// Get the window position
-    Position((u32, u32)),
+    Position((i32, i32)),
     /// Get the window dimensions
     Dimension((u32, u32)),
     /// Get the window depth

@@ -37,6 +37,15 @@ impl TextExtent {
 	}
 }
 
+#[inline]
+fn clear_surface(surface: &cairo::Surface) {
+	let cr = cairo::Context::new(surface);
+	cr.set_source_rgba(0.0, 0.0, 0.0, 0.0);
+	cr.set_operator(cairo::Operator::Source);
+	cr.paint();
+	surface.flush();
+}
+
 enum SurfaceType {
 	Window(cairo::Surface),
 	Buffer(cairo::Surface, cairo::SurfaceContext)
@@ -50,12 +59,43 @@ impl Surface {
 	pub fn window(connect: &Connection, window: &Token, dimensions: (i32, i32)) -> Option<Self> {
 		cairo::surface(connect, window, dimensions).map(|s| Surface{ 0: SurfaceType::Window(s) })
 	}
-	
+
 	/// Get a buffer surface from a `Connection`
 	pub fn buffer(connect: &Connection, window: &Token, dimensions: (i32, i32)) -> Option<Self> {
-		cairo::surface_buffer(connect, window, dimensions).map(|s| Surface{ 0: SurfaceType::Buffer(s.0, s.1) })
+		cairo::surface_buffer(connect, window, dimensions).map(|s| {
+			clear_surface(&s.0);
+			Surface{ 0: SurfaceType::Buffer(s.0, s.1) }
+		})
 	}
-	
+
+	/// Get a surface from an `ImageSurface`
+	pub fn image(
+		connect: &Connection,
+		window: &Token,
+		image: ImageSurface,
+		(width, height): (u32, u32),
+		cx: Option<&mut Context>
+	) -> Option<Self> {
+		let (w, h) = (width as i32, height as i32);
+		let s = Self::buffer(connect, window, (w, h))?;
+		let mut c = Context::new();
+		if let Some(cx) = cx {
+			c.append(cx);
+		}
+		c.image_surface(image, (0, 0));
+		c.paint(1.0);
+		cairo::render(&c, None, s.inner_surface());
+		Some(s)
+	}
+
+	/// Clear the surface
+	pub fn clear(&self) {
+		use SurfaceType::*;
+		match &self.0 {
+			Window(s) | Buffer(s, _) => { clear_surface(s); }
+		}
+	}
+
 	/// Render graphics to surface using context
 	pub fn render(&self, cx: &Context) {
 		use SurfaceType::*;
@@ -63,9 +103,9 @@ impl Surface {
 			Window(s) | Buffer(s, _) => { cairo::render(cx, None, s); }
 		}
 	}
-	
+
 	/// Use to copy a buffer surface to a window or another buffer
-	pub fn copy(&mut self, other: &Self) {
+	pub fn copy(&self, other: &Self) {
 		use SurfaceType::*;
 		match (&self.0, &other.0) {
 			(Window(s1), Buffer(s2, _)) |
@@ -78,9 +118,9 @@ impl Surface {
 			_ => ()
 		}
 	}
-	
+
 	/// Update the surface
-	pub fn update(&mut self, (width, height): (i32, i32)) {
+	pub fn update(&self, (width, height): (i32, i32)) {
 		use SurfaceType::*;
 		match &self.0 {
 			Window(s) => {
@@ -89,7 +129,7 @@ impl Surface {
 			_ => ()
 		}
 	}
-	
+
 	/// Get text extent
 	pub fn text_extent<T>(&self, text: T, cx: Option<&Context>) -> TextExtent
 		where T: AsRef<str> {
@@ -105,7 +145,7 @@ impl Surface {
 			}
 		}
 	}
-	
+
 	/// Check if this is a window surface
 	pub fn is_window_surface(&self) -> bool {
 		use SurfaceType::*;
@@ -121,7 +161,6 @@ impl Surface {
 			Window(s) | Buffer(s, _) => s
 		}
 	}
-	
 }
 
 #[cfg(feature = "cairo")]
@@ -134,7 +173,7 @@ impl Surface {
 			Window(s) | Buffer(s, _) => cairo::Context::new(s)
 		}
 	}
-	
+
 	/// Returns the surface as a cairo surface
 	#[inline]
 	pub fn as_cairo_surface(&self) -> &cairo::Surface {
@@ -172,17 +211,17 @@ impl ImageSurface {
 		width: u32, height: u32) -> Option<Self> {
 		cairo::image_surface(data, format, width, height).map(|i| ImageSurface { 0: Arc::new(i), 1: width, 2: height })
 	}
-	
+
 	/// Get the image width
 	pub fn width(&self) -> u32 {
 		self.1
 	}
-	
+
 	/// Get the image height
 	pub fn height(&self) -> u32 {
 		self.2
 	}
-	
+
 	/// Get the image width and height
 	pub fn dimensions(&self) -> (u32, u32) {
 		(self.1, self.2)
