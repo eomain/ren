@@ -6,8 +6,8 @@ extern crate xcb;
 
 use std::sync::Arc;
 use crate::{
-	Stat, Data, WindowCommand, Event, DisplayEvent, KeyEvent,
-	MouseEvent, event, event::input::MouseData
+	Stat, Data, WindowCommand, Event, DisplayEvent, KeyEvent, MouseEvent, event,
+	event::{FocusEvent, input::MouseData}
 };
 
 #[derive(Clone)]
@@ -260,9 +260,9 @@ impl Window {
 					MouseEvent::Leave(event::xcb::mouse_leave(&e)).into()
 				},
 
-				xcb::FOCUS_IN => DisplayEvent::FocusIn.into(),
+				xcb::FOCUS_IN => DisplayEvent::from(FocusEvent::Gain).into(),
 
-				xcb::FOCUS_OUT => DisplayEvent::FocusOut.into(),
+				xcb::FOCUS_OUT => DisplayEvent::from(FocusEvent::Lose).into(),
 				
 				xcb::CONFIGURE_NOTIFY => {
 					let event = unsafe { xcb::cast_event::<xcb::ConfigureNotifyEvent>(&e) };
