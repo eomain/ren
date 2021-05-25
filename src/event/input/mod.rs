@@ -1,105 +1,46 @@
 
-use super::{
-	Event,
-	InputEvent,
-	Position
-};
+pub mod keyboard;
+
+use keyboard::{Modifier, Modifiers, Mapping};
+use super::{Event, InputEvent, Position};
+
+pub use keyboard::{KeyCode, KeyMap};
 
 /// Keyboard input data
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct KeyCode(pub u16);
+pub struct KeyInput {
+	code: KeyCode,
+	mods: Option<Modifiers>,
+	map: Mapping
+}
 
-impl KeyCode {
-	pub(crate) fn new(code: u16) -> Self {
-		Self { 0: code }
+impl KeyInput {
+	pub(crate) fn new(code: KeyCode, mods: Option<Modifiers>, map: Mapping) -> Self {
+		Self {
+			code,
+			mods,
+			map
+		}
 	}
 
 	/// Return the keycode
-	pub fn code(&self) -> u16 {
-		self.0
+	pub fn code(&self) -> KeyCode {
+		self.code
 	}
 
-	/// Map the keycode to a keyboard character map
-	#[allow(dead_code)]
-	fn map(&self) -> KeyMap {
-		unimplemented!()
+	/// The key modifiers associated with the input
+	pub fn modifiers(&self) -> Option<&[Modifier]> {
+		self.mods
 	}
-}
-
-/// A mapping of possible keyboard characters.
-#[non_exhaustive]
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum KeyMap {
-	Esc,
-	F1,
-	F2,
-	F3,
-	F4,
-	F5,
-	F6,
-	F7,
-	F8,
-	F9,
-	F10,
-	F11,
-	F12,
-
-	Num0,
-	Num1,
-	Num2,
-	Num3,
-	Num4,
-	Num5,
-	Num6,
-	Num7,
-	Num8,
-	Num9,
-
-	Shift,
-	Caps,
-
-	Up,
-	Down,
-	Left,
-	Right,
-
-	A,
-	B,
-	C,
-	D,
-	E,
-	F,
-	G,
-	H,
-	I,
-	J,
-	K,
-	L,
-	M,
-	N,
-	O,
-	P,
-	Q,
-	R,
-	S,
-	T,
-	U,
-	V,
-	W,
-	X,
-	Y,
-	Z,
-	/// An unknown key
-	Unknown(u16)
 }
 
 /// The type of Key event.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum KeyEvent {
 	/// A Key press has occured.
-	Press(KeyCode),
+	Press(KeyInput),
 	/// A Key release has occured.
-	Release(KeyCode)
+	Release(KeyInput)
 }
 
 impl From<KeyEvent> for InputEvent {
